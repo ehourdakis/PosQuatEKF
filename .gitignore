@@ -1,0 +1,13 @@
+# Exclude vscode configuration
+.vscode/
+
+# Exclude all kdevelop project files
+.kdev4/
+**.kdev4
+
+# Exclude non-code files (non need to maintain)
+/data/
+/build/
+
+# Exclude all pycache files
+**/__pycache__/

@@ -6,7 +6,6 @@
 **.kdev4
 
 # Exclude non-code files (non need to maintain)
-/data/
 /build/
 
 # Exclude all pycache files

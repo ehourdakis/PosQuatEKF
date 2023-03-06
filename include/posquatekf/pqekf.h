@@ -26,6 +26,22 @@ public:
     using States = std::vector<State>;
 
     /**
+     * @brief Default constructor for the EKF
+     *
+     * Initializes position to zeros and quaternion to unit.
+     */
+    PoseQuaternionEKF()
+    {
+        init_state();
+
+        ekf.P.setIdentity()*1e-5;
+        Eigen::MatrixXd proc_cov = Eigen::MatrixXd::Identity(19, 19);
+        sys.setCovariance(proc_cov);
+        Eigen::MatrixXd meas_cov = Eigen::MatrixXd::Identity(7, 7);
+        om.setCovariance(meas_cov);
+    }
+
+    /**
      * @brief Initialize the EKF using a position and quaternion.
      *
      * @param position The initial system position to use for initialization
@@ -34,6 +50,12 @@ public:
     PoseQuaternionEKF(const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation)
     {
         init_state(position, orientation);
+
+        ekf.P.setIdentity()*1e-5;
+        Eigen::MatrixXd proc_cov = Eigen::MatrixXd::Identity(19, 19);
+        sys.setCovariance(proc_cov);
+        Eigen::MatrixXd meas_cov = Eigen::MatrixXd::Identity(7, 7);
+        om.setCovariance(meas_cov);
     }
 
     /**
@@ -76,7 +98,7 @@ public:
         measurement.qX() = orientation.x();
         measurement.qY() = orientation.y();
         measurement.qZ() = orientation.z();
-        
+
         auto x_ekf = ekf.update(om, measurement); 
         ekf_states.push_back(x_ekf);
 
@@ -98,7 +120,7 @@ public:
     {
         return ekf_states;
     }
-protected:
+
     /**
      * @brief Initialize the EKF state using a position and quaternion.
      *
@@ -107,7 +129,8 @@ protected:
      * @param position The initial system position to use for initialization
      * @param orientation The initial system orientation to use for initialization
      */
-    void init_state(const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation)
+    void init_state(const Eigen::Vector3d& position = Eigen::Vector3d::Zero(),
+        const Eigen::Quaterniond& orientation = Eigen::Quaterniond::Identity())
     {
         State x;
         x.setZero();

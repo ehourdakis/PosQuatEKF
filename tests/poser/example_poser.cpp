@@ -22,7 +22,7 @@ int main(int argc, char** argv)
     std::vector<Pose> poses;
 
     // load and interpolate data
-    bool loaded = load_and_interpolate_poses("data/poser.csv", poses);
+    bool loaded = load_and_interpolate_poses("data/test.csv", poses);
     if(!loaded) {
         std::cerr << "Could not load poser.csv file\n";
         return 0;
@@ -36,16 +36,15 @@ int main(int argc, char** argv)
     {
         ekf.predict();
 
-        if((i%1)==0){
+        // if((i%1)==0){
             poses[i].orientation.normalize();
             ekf.update(poses[i].position, poses[i].orientation);
-        }
+        // }
         std::cout << "Step: " << i << ":" << std::setprecision(3) << ekf.getState().transpose() << std::endl;
     }
     
 #if(USE_MATPLOTLIBCPP)
     auto fig_number = plt::figure();
-
     plot_ekf(ekf.getStates(), fig_number);
     plot_trajectory(poses, fig_number);
 

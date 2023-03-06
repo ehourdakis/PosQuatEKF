@@ -190,7 +190,6 @@ protected:
     {
         //! System model noise jacobian
         this->W.setIdentity();
-        this->W *= 10.1;
 
         // normalize the quaternion before hand
         Eigen::Quaterniond q(x.qw(), x.qx(), x.qy(), x.qz());

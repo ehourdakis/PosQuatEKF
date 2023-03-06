@@ -62,7 +62,6 @@ public:
     {
         //! Measurement noise
         this->V.setIdentity();
-        this->V *= 100;
 
         //! Measurement model Jacobian 
         this->H.setZero();

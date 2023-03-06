@@ -66,7 +66,7 @@ namespace Kalman {
         template<class Measurement>
         using KalmanGain = Kalman::KalmanGain<State, Measurement>;
         
-    protected:
+    public:
         //! State Estimate
         using KalmanBase::x;
         //! State Covariance Matrix
@@ -120,6 +120,46 @@ namespace Kalman {
         }
         
         /**
+         * @brief Compute the mahalanobis distance of the measurement.
+         * 
+         * @param x The x measurement vector
+         * @param mean The state projected as measurement
+         * @param cov The innovation covariance matrix
+         */
+        double mahalanobis(const Eigen::VectorXd& x,
+                                    const Eigen::VectorXd& mean,
+                                    const Eigen::MatrixXd& cov) {
+            Eigen::VectorXd diff = x - mean;
+            // Eigen::MatrixXd inv_cov = cov.inverse();
+            double md = std::sqrt(diff.transpose() * cov * diff);
+            return md;
+        }
+        
+        /**
+         * @brief Compute the mahalanobis distance of the position component of the measurement.
+         * 
+         * @param x The x measurement vector
+         * @param mean The state projected as measurement
+         * @param cov The innovation covariance matrix
+         */
+        double mahalanobis_position(const Eigen::VectorXd& x,
+                                    const Eigen::VectorXd& mean,
+                                    const Eigen::MatrixXd& cov) {
+            // Extract the position components of the measurement and the state mean
+            Eigen::Vector3d x_pos = x.head<3>();
+            Eigen::Vector3d mean_pos = mean.head<3>();
+
+            // Extract the submatrix of the covariance matrix corresponding to position
+            Eigen::MatrixXd cov_pos = cov.topLeftCorner<3, 3>();
+
+            // Compute the Mahalanobis distance between the position components
+            Eigen::VectorXd diff_pos = x_pos - mean_pos;
+            Eigen::MatrixXd inv_cov_pos = cov_pos.inverse();
+            double md = std::sqrt(diff_pos.transpose() * inv_cov_pos * diff_pos);
+            return md;
+        }
+
+        /**
          * @brief Perform filter update step using measurement \f$z\f$ and corresponding measurement model
          *
          * @param [in] m The Measurement model
@@ -134,7 +174,14 @@ namespace Kalman {
             // COMPUTE KALMAN GAIN
             // compute innovation covariance
             Covariance<Measurement> S = ( m.H * P * m.H.transpose() ) + ( m.V * m.getCovariance() * m.V.transpose() );
-            
+        
+            auto mah = mahalanobis_position(z, m.h(x), S);
+            Measurement diff = (z - m.h( x ));
+            std::cout << "Mah: " << mah << "\nDiff: " << diff.transpose() << std::endl;
+            if(mah>0.02) {
+                std::cout << "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n";
+            }
+
             // compute kalman gain
             KalmanGain<Measurement> K = P * m.H.transpose() * S.inverse();
             

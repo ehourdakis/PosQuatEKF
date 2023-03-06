@@ -36,7 +36,7 @@ set(pqekf_HEADERS
 add_library(pqekf SHARED ${pqekf_HEADERS})
 target_include_directories(pqekf PUBLIC ${pqekf_INCLUDES})
 target_link_libraries(pqekf PUBLIC ${EXTRAS})
-# set_target_properties(pqekf PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(pqekf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(pqekf PROPERTIES LINKER_LANGUAGE CXX)
 
 option(BUILD_TESTS "Build tests" ON)

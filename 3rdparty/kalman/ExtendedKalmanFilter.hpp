@@ -134,7 +134,7 @@ namespace Kalman {
             double md = std::sqrt(diff.transpose() * cov * diff);
             return md;
         }
-        
+
         /**
          * @brief Compute the mahalanobis distance of the position component of the measurement.
          * 
@@ -167,7 +167,9 @@ namespace Kalman {
          * @return The updated state estimate
          */
         template<class Measurement, template<class> class CovarianceBase>
-        const State& update( MeasurementModelType<Measurement, CovarianceBase>& m, const Measurement& z )
+        const State& update( MeasurementModelType<Measurement, CovarianceBase>& m, 
+                             const Measurement& z,
+                             double outlier_threshold )
         {
             m.updateJacobians( x );
             
@@ -177,9 +179,10 @@ namespace Kalman {
         
             auto mah = mahalanobis_position(z, m.h(x), S);
             Measurement diff = (z - m.h( x ));
-            std::cout << "Mah: " << mah << "\nDiff: " << diff.transpose() << std::endl;
-            if(mah>0.02) {
-                std::cout << "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n";
+            
+            // std::cout << "Mah: " << mah << "\nDiff: " << diff.transpose() << std::endl;
+            if(mah>outlier_threshold) {
+                std::cout << "Outlier Detected\n";
             }
 
             // compute kalman gain

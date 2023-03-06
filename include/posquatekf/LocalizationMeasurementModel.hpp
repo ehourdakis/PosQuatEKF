@@ -52,6 +52,8 @@ template<typename T, template<class> class CovarianceBase = Kalman::StandardBase
 class LocalizationMeasurementModel : public Kalman::LinearizedMeasurementModel<State<T>, LocalizationMeasurement<T>, CovarianceBase>
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    
     //! State type shortcut definition
     typedef FELICE::ekf::State<T> S;
     

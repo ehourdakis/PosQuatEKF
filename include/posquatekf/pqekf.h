@@ -18,6 +18,8 @@ namespace ekf
 template<class T>
 class PoseQuaternionEKF {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    
     using State = ekf::State<T>;
     using Control = ekf::Control<T>;
     using SystemModel = ekf::SystemModel<T>;
@@ -88,7 +90,7 @@ public:
      * @param position The position component of the measurement.
      * @param orientation The orientation component represented as a normalized quaternion.
      */
-    const State update(const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation)
+    const State update(const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, const double outlier_threshold)
     {
         LocalizationMeasurement measurement;
         measurement.x()  = position(0);
@@ -99,7 +101,7 @@ public:
         measurement.qY() = orientation.y();
         measurement.qZ() = orientation.z();
 
-        auto x_ekf = ekf.update(om, measurement); 
+        auto x_ekf = ekf.update(om, measurement, outlier_threshold); 
         ekf_states.push_back(x_ekf);
 
         return x_ekf;

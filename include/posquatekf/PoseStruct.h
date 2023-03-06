@@ -20,6 +20,8 @@ namespace ekf
  */
 struct Pose {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    
     Pose() = default;
 
     Pose(Eigen::Vector3d position_, Eigen::Quaterniond orientation_, double dt_)

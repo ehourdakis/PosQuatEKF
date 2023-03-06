@@ -36,10 +36,9 @@ int main(int argc, char** argv)
     {
         ekf.predict();
 
-        // if((i%1)==0){
-            poses[i].orientation.normalize();
-            ekf.update(poses[i].position, poses[i].orientation);
-        // }
+        poses[i].orientation.normalize();
+        ekf.update(poses[i].position, poses[i].orientation, 0.02);
+
         std::cout << "Step: " << i << ":" << std::setprecision(3) << ekf.getState().transpose() << std::endl;
     }
     

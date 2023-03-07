@@ -3,12 +3,9 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-#define WITHOUT_NUMPY
-#include "matplotlibcpp.h"
-
-namespace plt = matplotlibcpp;
-
 #include <Eigen/Geometry>
+
+#include <gnuplot-iostream.h>
 
 namespace FELICE
 {
@@ -39,59 +36,58 @@ Eigen::VectorXd quaternionToVectorXd(const Eigen::Quaterniond& quat) {
  * @param [in] targets Vector of targets as Eigen::VectorXd
  */
 void graph_plot_quaternion(const std::vector<Eigen::VectorXd>& matrices, const std::vector<Eigen::VectorXd>& targets) {
+    // Create a new gnuplot object
+    Gnuplot gp;
+
     // Create four separate subplots for each row of the matrices
-    plt::figure();
+    gp << "set multiplot layout 2,2\n";
 
-    plt::subplot(2, 2, 1);
-    std::vector<double> a, aa;
+    gp << "set title 'qw'\n";
+    gp << "plot '-' with lines title 'EKF Estimate', '-' with lines title 'targets'\n";
     for (const auto& mat : matrices) {
-        a.push_back(mat(0, 0));
+        gp << mat(0, 0) << "\n";
     }
+    gp << "e\n";
     for (const auto& mat : targets) {
-        aa.push_back(mat(0, 0));
+        gp << mat(0, 0) << "\n";
     }
-    plt::plot(a);
-    plt::plot(aa);
-    plt::title("qw");
+    gp << "e\n";
 
-    plt::subplot(2, 2, 2);
-    std::vector<double> b, bb;
+    gp << "set title 'qx'\n";
+    gp << "plot '-' with lines title 'EKF Estimate', '-' with lines title 'targets'\n";
     for (const auto& mat : matrices) {
-        b.push_back(mat(1, 0));
+        gp << mat(1, 0) << "\n";
     }
+    gp << "e\n";
     for (const auto& mat : targets) {
-        bb.push_back(mat(1, 0));
+        gp << mat(1, 0) << "\n";
     }
-    plt::plot(b);
-    plt::plot(bb);
-    plt::title("qx");
+    gp << "e\n";
 
-    plt::subplot(2, 2, 3);
-    std::vector<double> c, cc;
+    gp << "set title 'qy'\n";
+    gp << "plot '-' with lines title 'EKF Estimate', '-' with lines title 'targets'\n";
     for (const auto& mat : matrices) {
-        c.push_back(mat(2, 0));
+        gp << mat(2, 0) << "\n";
     }
+    gp << "e\n";
     for (const auto& mat : targets) {
-        cc.push_back(mat(2, 0));
+        gp << mat(2, 0) << "\n";
     }
-    plt::plot(c);
-    plt::plot(cc);
-    plt::title("qy");
+    gp << "e\n";
 
-    plt::subplot(2, 2, 4);
-    std::vector<double> d, dd;
+    gp << "set title 'qz'\n";
+    gp << "plot '-' with lines title 'EKF Estimate', '-' with lines title 'targets'\n";
     for (const auto& mat : matrices) {
-        d.push_back(mat(3, 0));
+        gp << mat(3, 0) << "\n";
     }
+    gp << "e\n";
     for (const auto& mat : targets) {
-        dd.push_back(mat(3, 0));
+        gp << mat(3, 0) << "\n";
     }
-    plt::plot(d);
-    plt::plot(dd);
-    plt::title("qz");
+    gp << "e\n";
 
-    // Show the plots
-    plt::show();
+    // Reset the layout to a single plot
+    gp << "unset multiplot\n";
 }
 
 /**
@@ -100,7 +96,7 @@ void graph_plot_quaternion(const std::vector<Eigen::VectorXd>& matrices, const s
  * @param [in] poses A vector of ekf estimates
  * @param [in] fig_number The Matplotlibcpp figure number
  */
-void plot_ekf(const std::vector<FELICE::ekf::State<double>>& poses, long fig_number) {
+void plot_ekf(const std::vector<FELICE::ekf::State<double>>& poses, Gnuplot &gp) {
     std::vector<double> x, y, z, qx, qy, qz, qw;
 
     auto skip = 0; // skip mod
@@ -118,14 +114,7 @@ void plot_ekf(const std::vector<FELICE::ekf::State<double>>& poses, long fig_num
         qz.push_back(pose(12));
     }
 
-    // Plot red circles for position
-    std::map<std::string, std::string> marker_properties = {{"color", "red"}};
-    plt::scatter<double>(x, y, z, 2, marker_properties, fig_number);
-
-    // Set the title and axis labels
-    plt::title("Data", std::map<std::string, std::string>{{"fontsize", "16"}});
-    plt::xlabel("x", std::map<std::string, std::string>{{"fontsize", "16"}});
-    plt::ylabel("y", std::map<std::string, std::string>{{"fontsize", "16"}});
+    gp.send1d(boost::make_tuple(x, y, z));
 }
 
 /**
@@ -134,7 +123,7 @@ void plot_ekf(const std::vector<FELICE::ekf::State<double>>& poses, long fig_num
  * @param [in] poses A vector of ekf::Pose poses.
  * @param [in] fig_number The Matplotlibcpp figure number
  */
-void plot_trajectory(const std::vector<ekf::Pose>& poses, long fig_number) {
+void plot_trajectory(const std::vector<ekf::Pose>& poses, Gnuplot &gp) {
     std::vector<double> x, y, z, qx, qy, qz, qw;
 
     auto skip = 0;
@@ -152,14 +141,19 @@ void plot_trajectory(const std::vector<ekf::Pose>& poses, long fig_number) {
         qz.push_back(pose.orientation.z());
     }
 
-    // Plot small circles for position
-    std::map<std::string, std::string> marker_properties = {{"color", "blue"}};
-    plt::scatter<double>(x, y, z, 1, marker_properties, fig_number);
+    // Plot red circles for position
+    gp << "set title 'GT'\n";
+    gp << "set xlabel 'x'\n";
+    gp << "set ylabel 'y'\n";
+    gp << "set zlabel 'z'\n";
+    gp << "set ticslevel 0\n";
+    gp << "set view equal xyz\n";
+    gp << "splot '-' with lines lw 2 lt rgb 'blue'\n";
+    gp.send1d(boost::make_tuple(x, y, z));
 
-    // Set the title and axis labels
-    plt::title("Data", std::map<std::string, std::string>{{"fontsize", "16"}});
-    plt::xlabel("x", std::map<std::string, std::string>{{"fontsize", "16"}});
-    plt::ylabel("y", std::map<std::string, std::string>{{"fontsize", "16"}});
+    gp << "set title 'Trajectory'\n";
+
+    gp << "unset multiplot\n";
 }
 
 /**
@@ -167,7 +161,7 @@ void plot_trajectory(const std::vector<ekf::Pose>& poses, long fig_number) {
  *
  * @param [in] covariance A 3x3 Covariance matrix
  */
-void plot_covariance(const Eigen::MatrixXd& covariance, long fig_number) {
+void plot_covariance(const Eigen::MatrixXd& covariance, const Eigen::VectorXd& mean, Gnuplot &gp) {
     // Compute eigenvalues and eigenvectors of covariance matrix
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eig(covariance);
     const Eigen::MatrixXd& eigenvalues = eig.eigenvalues();
@@ -176,29 +170,30 @@ void plot_covariance(const Eigen::MatrixXd& covariance, long fig_number) {
     // Compute length of eigenvalues for scaling the eigenvectors
     const double eigenvalues_length = eigenvalues.maxCoeff() - eigenvalues.minCoeff();
 
-    // Plot covariance ellipsoid
-    std::vector<double> xs, ys, zs;
+    // Compute x, y, and z coordinates of points on the ellipsoid
+    std::vector<double> xx, yy, zz;
     for (double theta = 0; theta <= 2 * M_PI; theta += M_PI / 20) {
         for (double phi = 0; phi <= M_PI; phi += M_PI / 20) {
             double x = eigenvectors(0, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
                         eigenvectors(0, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
-                        eigenvectors(0, 2) * eigenvalues(2) * cos(phi);
+                        eigenvectors(0, 2) * eigenvalues(2) * cos(phi) + mean(0);
             double y = eigenvectors(1, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
                         eigenvectors(1, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
-                        eigenvectors(1, 2) * eigenvalues(2) * cos(phi);
+                        eigenvectors(1, 2) * eigenvalues(2) * cos(phi) + mean(1);
             double z = eigenvectors(2, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
                         eigenvectors(2, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
-                        eigenvectors(2, 2) * eigenvalues(2) * cos(phi);
-            xs.push_back(x);
-            ys.push_back(y);
-            zs.push_back(z);
+                        eigenvectors(2, 2) * eigenvalues(2) * cos(phi) + mean(2);
+            xx.push_back(x);
+            yy.push_back(y);
+            zz.push_back(z);
         }
     }
-    std::cout << covariance << std::endl;
-    plt::clf();
-    plt::plot3(xs, ys, zs, std::map<std::string, std::string>(), fig_number);
-    plt::pause(0.05);
-    plt::draw();
+
+    // Send x, y, and z coordinates to Gnuplot iostream
+    gp.send1d(boost::make_tuple(xx, yy, zz));
 }
+
+
+
 }
 }

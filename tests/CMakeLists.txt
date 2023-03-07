@@ -8,14 +8,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
-# Enable matplotlibcpp for drawing
-option(USE_MATPLOTLIBCPP "Use the matplotlibcpp library" ON)
-if(USE_MATPLOTLIBCPP)
-  find_package(Python 3.10.8 REQUIRED COMPONENTS Interpreter Development NumPy)
-  include_directories(${Python_INCLUDE_DIRS})
-
+option(USE_GNUPLOT "Use the gnuplot library" ON)
+if(USE_GNUPLOT)
   set(pqekf_INCLUDES ${pqekf_INCLUDES} ${CMAKE_SOURCE_DIR}/3rdparty/matplotlibcpp/)
-  set(EXTRAS ${EXTRAS} python3.10)
-endif(USE_MATPLOTLIBCPP)
+  find_package(Boost COMPONENTS filesystem system iostreams REQUIRED)
+  set(EXTRAS ${EXTRAS} ${Boost_LIBRARIES})
+endif(USE_GNUPLOT)
 
 add_subdirectory(poser)

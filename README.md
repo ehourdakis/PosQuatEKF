@@ -2,11 +2,22 @@
 Implementation of an EKF for a position-quaternion state system.  The project can be compiled by issuing the following commands:
 
 ```bash
-cmake . -B build/
+cmake . -DUSE_GNUPLOT=ON -B build/
 cmake --build build/ --parallel -j${nproc}
-# run the test on poser data
+# run the test on some data
 ./build/tests/poser/example_poser
 ```
+
+Gnuplot can be installed using:
+```bash
+sudo apt-get install gnuplot libgnuplot-iostream-dev
+```
+
+If gnuplot is enabled the program will generate graphs for debugging:
+
+![Trajectory with covariance](/data/images/trajectory.png "Trajectory with covariance").
+
+![Plots](/data/images/plots.png "Plots").
 
 ## Mathematical Foundations
 

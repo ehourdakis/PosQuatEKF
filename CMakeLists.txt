@@ -5,7 +5,7 @@ project(PosQuatEKF
         DESCRIPTION "An EKF tracking the linearized position and orientation of a robot."
         LANGUAGES CXX)
 
-SET (CMAKE_BUILD_TYPE DEBUG CACHE STRING "Build configuration" FORCE)
+SET (CMAKE_BUILD_TYPE RELEASE CACHE STRING "Build configuration" FORCE)
 
 # Add flags to enable debugging and profiling
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

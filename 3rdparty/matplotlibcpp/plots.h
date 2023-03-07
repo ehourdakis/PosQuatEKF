@@ -1,6 +1,7 @@
 
 #include <vector>
 #include <Eigen/Core>
+#include <Eigen/Dense>
 
 #define WITHOUT_NUMPY
 #include "matplotlibcpp.h"
@@ -161,5 +162,43 @@ void plot_trajectory(const std::vector<ekf::Pose>& poses, long fig_number) {
     plt::ylabel("y", std::map<std::string, std::string>{{"fontsize", "16"}});
 }
 
+/**
+ * @brief Plots the covariance. 
+ *
+ * @param [in] covariance A 3x3 Covariance matrix
+ */
+void plot_covariance(const Eigen::MatrixXd& covariance, long fig_number) {
+    // Compute eigenvalues and eigenvectors of covariance matrix
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eig(covariance);
+    const Eigen::MatrixXd& eigenvalues = eig.eigenvalues();
+    const Eigen::MatrixXd& eigenvectors = eig.eigenvectors();
+
+    // Compute length of eigenvalues for scaling the eigenvectors
+    const double eigenvalues_length = eigenvalues.maxCoeff() - eigenvalues.minCoeff();
+
+    // Plot covariance ellipsoid
+    std::vector<double> xs, ys, zs;
+    for (double theta = 0; theta <= 2 * M_PI; theta += M_PI / 20) {
+        for (double phi = 0; phi <= M_PI; phi += M_PI / 20) {
+            double x = eigenvectors(0, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
+                        eigenvectors(0, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
+                        eigenvectors(0, 2) * eigenvalues(2) * cos(phi);
+            double y = eigenvectors(1, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
+                        eigenvectors(1, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
+                        eigenvectors(1, 2) * eigenvalues(2) * cos(phi);
+            double z = eigenvectors(2, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
+                        eigenvectors(2, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
+                        eigenvectors(2, 2) * eigenvalues(2) * cos(phi);
+            xs.push_back(x);
+            ys.push_back(y);
+            zs.push_back(z);
+        }
+    }
+    std::cout << covariance << std::endl;
+    plt::clf();
+    plt::plot3(xs, ys, zs, std::map<std::string, std::string>(), fig_number);
+    plt::pause(0.05);
+    plt::draw();
+}
 }
 }

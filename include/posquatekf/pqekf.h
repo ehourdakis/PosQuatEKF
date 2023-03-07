@@ -26,6 +26,7 @@ public:
     using LocalizationMeasurement = ekf::LocalizationMeasurement<T>;
     using LocalizationModel = ekf::LocalizationMeasurementModel<T>;
     using States = std::vector<State>;
+    using EKF = Kalman::ExtendedKalmanFilter<State>;
 
     /**
      * @brief Default constructor for the EKF
@@ -148,12 +149,36 @@ public:
         ekf.init(x);
         ekf_states.push_back(x);
     }
+
+    /**
+     * @brief Return a constant reference to the EKF. 
+     */
+    const EKF& getEKF()
+    {
+        return ekf;
+    }
+
+    /**
+     * @brief Return the measurement covariance matrix.
+     */
+    const Eigen::MatrixXd getMeasurementCovariance()
+    {
+        return om.getCovariance();
+    }
+
+    /**
+     * @brief Return the process covariance matrix.
+     */
+    const Eigen::MatrixXd getProcessCovariance()
+    {
+        return sys.getCovariance();
+    }
 private:
     Control u; // The control model
     SystemModel sys; // The system model
     LocalizationModel om; // The localization measurement model
     
-    Kalman::ExtendedKalmanFilter<State> ekf; // the EKF model
+    EKF ekf; // the EKF model
 
     States ekf_states; // the stored states of the EKF
 };

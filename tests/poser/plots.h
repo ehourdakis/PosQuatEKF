@@ -240,9 +240,8 @@ void plot_covariance(const Eigen::MatrixXd& covariance, const Eigen::VectorXd& m
  * @param [in] index The EKF index
  * @param [in] covariance A 3x3 Covariance matrix
  */
-void plot_demo( const std::vector<FELICE::ekf::State<double>>& poses, 
-                const std::vector<ekf::Pose>& targets, 
-                PoseQuaternionEKF<double>& pqekf,
+void plot_demo( const std::vector<ekf::Pose>& targets, 
+                std::unique_ptr<PoseQuaternionEKF<double> >& pqekf,
                 const int index,
                 Gnuplot &gp)
 {
@@ -259,17 +258,18 @@ void plot_demo( const std::vector<FELICE::ekf::State<double>>& poses,
     gp << "'-' with linespoints pointtype 7 linecolor rgb 'blue' lw 1 ps 0.8 title 'EKF'";
     gp << ",'-' with linespoints pointtype 7 linecolor rgb 'red' lw 1 ps 0.8 title 'Measurements w outliers'";
     gp << ", '-' with lines lw 1.0 linecolor rgb 'red' title 'Process Covariance'";
-    gp << ", '-' with lines lw 0.8 title 'Measurement Covariance'" << std::endl;
+    gp << ", '-' with lines lw 0.8 title 'Measurement Covariance'";
+    gp << std::endl;
 
-    plot_ekf(pqekf.getStates(), gp);
+    plot_ekf(pqekf->getStates(), gp);
 
     std::vector<Pose>::const_iterator first = targets.begin();
     std::vector<Pose>::const_iterator last = targets.begin() + index;
     plot_trajectory(std::vector<Pose>(first, last), gp);
     
-    plot_covariance(pqekf.getEKF().P.topLeftCorner<3, 3>(),
-                    pqekf.getState().head<3>(), gp, 0.2);
-    plot_covariance(pqekf.getEKF().getInnovationCovariance().topLeftCorner<3, 3>(), 
+    plot_covariance(pqekf->getEKF()->P.topLeftCorner<3, 3>(),
+                    pqekf->getState().head<3>(), gp, 0.2);
+    plot_covariance(pqekf->getEKF()->getInnovationCovariance().topLeftCorner<3, 3>(), 
                     targets[index].position, gp, 0.01);
 }
 

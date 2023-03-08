@@ -34,22 +34,32 @@ public:
      * @param position The initial system position to use for initialization
      * @param orientation The initial system orientation to use for initialization
      */
-    
     PoseQuaternionEKF(const Eigen::Vector3d& position = Eigen::Vector3d::Zero(),
                       const Eigen::Quaterniond& orientation = Eigen::Quaterniond::Identity(),
                       const double state_covariance = 1e-5,
                       const double process_covariance = 1e-5,
-                      const double measurement_covariance = 1e+2)
+                      const double measurement_covariance = 1e+2,
+                      const double outlier_threshold = 0.02)
+    : _outlier_threshold(outlier_threshold),
+      _ekf(new EKF())
     {
         init_state(position, orientation);
 
-        ekf.P = Eigen::MatrixXd::Identity(19, 19)*state_covariance;
+        _ekf->P = Eigen::MatrixXd::Identity(19, 19)*state_covariance;
 
         Eigen::MatrixXd proc_cov = Eigen::MatrixXd::Identity(19, 19)*process_covariance;
         sys.setCovariance(proc_cov);
 
         Eigen::MatrixXd meas_cov = Eigen::MatrixXd::Identity(7, 7)*measurement_covariance;
         om.setCovariance(meas_cov);
+    }
+    /**
+     * @brief Destructor. 
+     *
+     */
+    ~PoseQuaternionEKF()
+    {
+
     }
 
     /**
@@ -67,7 +77,7 @@ public:
         State ret;
         for(size_t i = 0; i < num_steps; i++)
         {
-            ret = ekf.predict(sys);
+            ret = _ekf->predict(sys);
             if(num_steps>1) ekf_states.push_back(ret);
         }
         return ret;
@@ -82,7 +92,7 @@ public:
      * @param position The position component of the measurement.
      * @param orientation The orientation component represented as a normalized quaternion.
      */
-    const State update(const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, const double outlier_threshold)
+    const State update(const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation)
     {
         LocalizationMeasurement measurement;
         measurement.x()  = position(0);
@@ -93,7 +103,7 @@ public:
         measurement.qY() = orientation.y();
         measurement.qZ() = orientation.z();
 
-        auto x_ekf = ekf.update(om, measurement, outlier_threshold); 
+        auto x_ekf = _ekf->update(om, measurement, _outlier_threshold); 
         ekf_states.push_back(x_ekf);
 
         return x_ekf;
@@ -104,13 +114,13 @@ public:
      */
     const State& getState() 
     { 
-        return ekf.getState();
+        return _ekf->getState();
     }
 
     /**
      * @brief Return all stored ekf States.
      */
-    States &getStates()
+    const States &getStates()
     {
         return ekf_states;
     }
@@ -137,20 +147,20 @@ public:
         x.qy() = orientation.y();
         x.qz() = orientation.z();
 
-        ekf.init(x);
+        _ekf->init(x);
         ekf_states.push_back(x);
     }
 
     /**
      * @brief Return a constant reference to the EKF. 
      */
-    EKF& getEKF()
+    const std::unique_ptr<EKF>& getEKF()
     {
-        return ekf;
+        return _ekf;
     }
 
     /**
-     * @brief Return the measurement covariance matrix.
+     * @brief Get the measurement covariance matrix.
      */
     const Eigen::MatrixXd getMeasurementCovariance()
     {
@@ -158,19 +168,38 @@ public:
     }
 
     /**
-     * @brief Return the process covariance matrix.
+     * @brief Set the measurement covariance matrix.
+     */
+    const void setMeasurementCovariance(const Eigen::MatrixXd& cov)
+    {
+        return om.setCovariance(cov);
+    }
+
+    /**
+     * @brief Get the process covariance matrix.
      */
     const Eigen::MatrixXd getProcessCovariance()
     {
         return sys.getCovariance();
     }
+
+    /**
+     * @brief Set the process covariance matrix.
+     */
+    const void setProcessCovariance(const Eigen::MatrixXd& cov)
+    {
+        return sys.setCovariance(cov);
+    }
 private:
+    const double _outlier_threshold;
+
     Control u; // The control model
     SystemModel sys; // The system model
     LocalizationModel om; // The localization measurement model
     
-    EKF ekf; // the EKF model
+    std::unique_ptr<EKF> _ekf; // the EKF model
 
+    //TODO: Remove storing states
     States ekf_states; // the stored states of the EKF
 };
 

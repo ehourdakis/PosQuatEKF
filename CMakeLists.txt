@@ -13,11 +13,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 endif()
 
-# Kalman filter CXX flags
-# set(CMAKE_CXX_FLAGS "-Wall -pedantic -g")
-# set(CMAKE_CXX_FLAGS "--std=c++14 -O3 -Wall -g -pthread")
-# set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DEIGEN_NO_DEBUG")
-
 # Inlude Eigen
 find_package(Eigen3 REQUIRED)
 set(EXTRAS ${EXTRAS} Eigen3::Eigen)

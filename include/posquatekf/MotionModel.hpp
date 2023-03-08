@@ -94,10 +94,10 @@ class SystemModel : public Kalman::LinearizedSystemModel<State<T>, Control<T>, C
 {
 public:
     //! State type shortcut definition
-	typedef FELICE::ekf::State<T> S;
+	using S = FELICE::ekf::State<T>;
     
     //! Control type shortcut definition
-    typedef FELICE::ekf::Control<T> C;
+    using C = FELICE::ekf::Control<T>;
     
     /**
      * @brief Definition of (non-linear) state transition function
@@ -137,7 +137,6 @@ public:
         S x_;
         x_.setZero();
         
-        // Return transitioned state vector
         double dt_ = 0.05;
 
         // evolution of state
@@ -203,6 +202,7 @@ protected:
         double swy  = x.wy();
         double swz  = x.wz();
 
+        //TODO: Get dt from timestamp difference
         double dt_ = 0.05;
 
         //! System model jacobian

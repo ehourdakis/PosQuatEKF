@@ -55,10 +55,10 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
     //! State type shortcut definition
-    typedef FELICE::ekf::State<T> S;
+    using S = FELICE::ekf::State<T>;
     
     //! Measurement type shortcut definition
-    typedef  FELICE::ekf::LocalizationMeasurement<T> M;
+    using M = FELICE::ekf::LocalizationMeasurement<T>;
     
     LocalizationMeasurementModel()
     {

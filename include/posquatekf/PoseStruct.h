@@ -15,8 +15,8 @@ namespace FELICE
 namespace ekf
 {
 /**
- * @brief Holds a pose measurement (position and orientation quaternion)
- *
+ * @brief Holds a pose measurement.
+ * 
  */
 struct Pose {
 public:

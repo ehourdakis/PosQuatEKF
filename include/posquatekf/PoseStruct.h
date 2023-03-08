@@ -67,7 +67,7 @@ bool read_poses_from_csv(const std::string& filename, std::vector<Pose> &poses) 
                     pose.timestamp = std::stod(field);
                 } else if (i >= 4 && i < 7 ) {
                     pose.position(i - 4) = std::stod(field);
-                } else if (i >= 7 && i < 11) {
+                } else if (i >= 7 && i <= 10) {
                     pose.orientation.coeffs()(i - 7) = std::stod(field);
                 }
             }

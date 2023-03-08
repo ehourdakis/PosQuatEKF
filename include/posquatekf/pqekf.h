@@ -29,35 +29,26 @@ public:
     using EKF = Kalman::ExtendedKalmanFilter<State>;
 
     /**
-     * @brief Default constructor for the EKF
-     *
-     * Initializes position to zeros and quaternion to unit.
-     */
-    PoseQuaternionEKF()
-    {
-        init_state();
-
-        ekf.P.setIdentity()*1e-5;
-        Eigen::MatrixXd proc_cov = Eigen::MatrixXd::Identity(19, 19);
-        sys.setCovariance(proc_cov);
-        Eigen::MatrixXd meas_cov = Eigen::MatrixXd::Identity(7, 7);
-        om.setCovariance(meas_cov);
-    }
-
-    /**
      * @brief Initialize the EKF using a position and quaternion.
      *
      * @param position The initial system position to use for initialization
      * @param orientation The initial system orientation to use for initialization
      */
-    PoseQuaternionEKF(const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation)
+    
+    PoseQuaternionEKF(const Eigen::Vector3d& position = Eigen::Vector3d::Zero(),
+                      const Eigen::Quaterniond& orientation = Eigen::Quaterniond::Identity(),
+                      const double state_covariance = 1e-5,
+                      const double process_covariance = 1e-5,
+                      const double measurement_covariance = 1e+2)
     {
         init_state(position, orientation);
 
-        ekf.P.setIdentity()*1e-5;
-        Eigen::MatrixXd proc_cov = Eigen::MatrixXd::Identity(19, 19);
+        ekf.P = Eigen::MatrixXd::Identity(19, 19)*state_covariance;
+
+        Eigen::MatrixXd proc_cov = Eigen::MatrixXd::Identity(19, 19)*process_covariance;
         sys.setCovariance(proc_cov);
-        Eigen::MatrixXd meas_cov = Eigen::MatrixXd::Identity(7, 7);
+
+        Eigen::MatrixXd meas_cov = Eigen::MatrixXd::Identity(7, 7)*measurement_covariance;
         om.setCovariance(meas_cov);
     }
 

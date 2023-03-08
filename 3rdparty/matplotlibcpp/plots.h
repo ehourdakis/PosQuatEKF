@@ -43,7 +43,7 @@ void graph_plot_quaternion(const std::vector<Eigen::VectorXd>& matrices, const s
     gp << "set multiplot layout 2,2\n";
 
     gp << "set title 'qw'\n";
-    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
     for (const auto& mat : targets) {
         gp << mat(0, 0) << "\n";
     }
@@ -54,7 +54,7 @@ void graph_plot_quaternion(const std::vector<Eigen::VectorXd>& matrices, const s
     gp << "e\n";
 
     gp << "set title 'qx'\n";
-    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
     for (const auto& mat : targets) {
         gp << mat(1, 0) << "\n";
     }
@@ -65,7 +65,7 @@ void graph_plot_quaternion(const std::vector<Eigen::VectorXd>& matrices, const s
     gp << "e\n";
 
     gp << "set title 'qy'\n";
-    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
     for (const auto& mat : targets) {
         gp << mat(2, 0) << "\n";
     }
@@ -76,7 +76,7 @@ void graph_plot_quaternion(const std::vector<Eigen::VectorXd>& matrices, const s
     gp << "e\n";
 
     gp << "set title 'qz'\n";
-    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
     for (const auto& mat : targets) {
         gp << mat(3, 0) << "\n";
     }
@@ -104,7 +104,7 @@ void graph_plot_position(const std::vector<Eigen::VectorXd>& matrices, const std
     gp << "set multiplot layout 2,2\n";
 
     gp << "set title 'X'\n";
-    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
     for (const auto& mat : targets) {
         gp << mat(0, 0) << "\n";
     }
@@ -115,7 +115,7 @@ void graph_plot_position(const std::vector<Eigen::VectorXd>& matrices, const std
     gp << "e\n";
 
     gp << "set title 'Y'\n";
-    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
     for (const auto& mat : targets) {
         gp << mat(1, 0) << "\n";
     }
@@ -126,7 +126,7 @@ void graph_plot_position(const std::vector<Eigen::VectorXd>& matrices, const std
     gp << "e\n";
 
     gp << "set title 'Z'\n";
-    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
     for (const auto& mat : targets) {
         gp << mat(2, 0) << "\n";
     }
@@ -191,19 +191,7 @@ void plot_trajectory(const std::vector<ekf::Pose>& poses, Gnuplot &gp) {
         qz.push_back(pose.orientation.z());
     }
 
-    // Plot red circles for position
-    gp << "set title 'GT'\n";
-    gp << "set xlabel 'x'\n";
-    gp << "set ylabel 'y'\n";
-    gp << "set zlabel 'z'\n";
-    gp << "set ticslevel 0\n";
-    gp << "set view equal xyz\n";
-    gp << "splot '-' with lines lw 2 lt rgb 'blue'\n";
     gp.send1d(boost::make_tuple(x, y, z));
-
-    gp << "set title 'Trajectory'\n";
-
-    gp << "unset multiplot\n";
 }
 
 /**
@@ -211,7 +199,7 @@ void plot_trajectory(const std::vector<ekf::Pose>& poses, Gnuplot &gp) {
  *
  * @param [in] covariance A 3x3 Covariance matrix
  */
-void plot_covariance(const Eigen::MatrixXd& covariance, const Eigen::VectorXd& mean, Gnuplot &gp) {
+void plot_covariance(const Eigen::MatrixXd& covariance, const Eigen::VectorXd& mean, Gnuplot &gp, double scale = 1.0) {
     // Compute eigenvalues and eigenvectors of covariance matrix
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eig(covariance);
     const Eigen::MatrixXd& eigenvalues = eig.eigenvalues();
@@ -224,15 +212,15 @@ void plot_covariance(const Eigen::MatrixXd& covariance, const Eigen::VectorXd& m
     std::vector<double> xx, yy, zz;
     for (double theta = 0; theta <= 2 * M_PI; theta += M_PI / 20) {
         for (double phi = 0; phi <= M_PI; phi += M_PI / 20) {
-            double x = eigenvectors(0, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
-                        eigenvectors(0, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
-                        eigenvectors(0, 2) * eigenvalues(2) * cos(phi) + mean(0);
-            double y = eigenvectors(1, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
-                        eigenvectors(1, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
-                        eigenvectors(1, 2) * eigenvalues(2) * cos(phi) + mean(1);
-            double z = eigenvectors(2, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
-                        eigenvectors(2, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
-                        eigenvectors(2, 2) * eigenvalues(2) * cos(phi) + mean(2);
+            double x = scale * (eigenvectors(0, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
+                            eigenvectors(0, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
+                            eigenvectors(0, 2) * eigenvalues(2) * cos(phi)) + mean(0);
+            double y = scale * (eigenvectors(1, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
+                            eigenvectors(1, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
+                            eigenvectors(1, 2) * eigenvalues(2) * cos(phi)) + mean(1);
+            double z = scale * (eigenvectors(2, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
+                            eigenvectors(2, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
+                            eigenvectors(2, 2) * eigenvalues(2) * cos(phi)) + mean(2);
             xx.push_back(x);
             yy.push_back(y);
             zz.push_back(z);
@@ -243,7 +231,47 @@ void plot_covariance(const Eigen::MatrixXd& covariance, const Eigen::VectorXd& m
     gp.send1d(boost::make_tuple(xx, yy, zz));
 }
 
+/**
+ * @brief Plots the poser demo, i.e. the trajectory along with the process
+ * and measurement covariances.
+ *
+ * @param [in] poses Estimated EKF poses
+ * @param [in] targets The loaded measurements
+ * @param [in] index The EKF index
+ * @param [in] covariance A 3x3 Covariance matrix
+ */
+void plot_demo( const std::vector<FELICE::ekf::State<double>>& poses, 
+                const std::vector<ekf::Pose>& targets, 
+                PoseQuaternionEKF<double>& pqekf,
+                const int index,
+                Gnuplot &gp)
+{
+    gp << "set title 'Trajectory, process and measurement Covariance'" << std::endl;
+    gp << "set xlabel 'x'" << std::endl;
+    gp << "set ylabel 'y'" << std::endl;
+    gp << "set zlabel 'z'" << std::endl;
+    gp << "set xrange [-5:5]" << std::endl;
+    gp << "set yrange [-5:5]" << std::endl;
+    gp << "set zrange [-1:3]" << std::endl;
+    // gp << "set view 49, 48, 3, 1"<< std::endl;
 
+    gp << "splot ";
+    gp << "'-' with linespoints pointtype 7 linecolor rgb 'blue' lw 1 ps 0.8 title 'EKF'";
+    gp << ",'-' with linespoints pointtype 7 linecolor rgb 'red' lw 1 ps 0.8 title 'Measurements w outliers'";
+    gp << ", '-' with lines lw 1.0 linecolor rgb 'red' title 'Process Covariance'";
+    gp << ", '-' with lines lw 0.8 title 'Measurement Covariance'" << std::endl;
+
+    plot_ekf(pqekf.getStates(), gp);
+
+    std::vector<Pose>::const_iterator first = targets.begin();
+    std::vector<Pose>::const_iterator last = targets.begin() + index;
+    plot_trajectory(std::vector<Pose>(first, last), gp);
+    
+    plot_covariance(pqekf.getEKF().P.topLeftCorner<3, 3>(),
+                    pqekf.getState().head<3>(), gp, 0.2);
+    plot_covariance(pqekf.getEKF().getInnovationCovariance().topLeftCorner<3, 3>(), 
+                    targets[index].position, gp, 0.01);
+}
 
 }
 }

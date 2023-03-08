@@ -16,11 +16,14 @@ Gnuplot can be installed using:
 sudo apt-get install gnuplot libgnuplot-iostream-dev
 ```
 
-If Gnuplot is enabled the pqekf will generate graphs for debugging:
+If Gnuplot is enabled, pqekf will generate graphs for debugging:
 
 ![Trajectory with covariance](/data/images/trajectory.png "Trajectory with covariance").
 
-![Plots](/data/images/plots.png "Plots").
+The EKF is robust, i.e. it can reject outliers in extreme cases:
+
+![Plots](/data/images/plots_pos.png "Position plot").
+![Plots](/data/images/plots_quat.png "Quaternion plot").
 
 ## Mathematical Foundations
 

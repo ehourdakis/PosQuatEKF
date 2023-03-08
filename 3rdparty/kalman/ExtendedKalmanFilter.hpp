@@ -189,13 +189,14 @@ namespace Kalman {
             auto mah = mahalanobis_position(z, m.h(x), S);
             Measurement diff = (z - m.h( x ));
             
-            if(mah>outlier_threshold) {
+            if(outlier_threshold>0.0 && mah>outlier_threshold) {
                 std::cout << "Mah: " << mah << "\nDiff: " << diff.transpose() << std::endl;
                 std::cout << "Outlier Detected\n";
             }
 
+            auto SI = S.inverse();
             // compute kalman gain
-            KalmanGain<Measurement> K = P * m.H.transpose() * S.inverse();
+            KalmanGain<Measurement> K = P * m.H.transpose() * SI;
 
             _S = S;
             

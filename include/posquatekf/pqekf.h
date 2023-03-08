@@ -153,7 +153,7 @@ public:
     /**
      * @brief Return a constant reference to the EKF. 
      */
-    const EKF& getEKF()
+    EKF& getEKF()
     {
         return ekf;
     }

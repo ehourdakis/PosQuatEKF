@@ -66,12 +66,21 @@ namespace Kalman {
         template<class Measurement>
         using KalmanGain = Kalman::KalmanGain<State, Measurement>;
         
+        //! Innovation covariance
+        Eigen::MatrixXd _S;
     public:
         //! State Estimate
         using KalmanBase::x;
         //! State Covariance Matrix
         using StandardBase::P;
         
+        /**
+         * @brief Returns the innovation covariance matrix
+         */
+        const Eigen::MatrixXd& getInnovationCovariance()
+        {
+            return _S;
+        }
     public:
         /**
          * @brief Constructor
@@ -180,13 +189,15 @@ namespace Kalman {
             auto mah = mahalanobis_position(z, m.h(x), S);
             Measurement diff = (z - m.h( x ));
             
-            // std::cout << "Mah: " << mah << "\nDiff: " << diff.transpose() << std::endl;
             if(mah>outlier_threshold) {
+                std::cout << "Mah: " << mah << "\nDiff: " << diff.transpose() << std::endl;
                 std::cout << "Outlier Detected\n";
             }
 
             // compute kalman gain
             KalmanGain<Measurement> K = P * m.H.transpose() * S.inverse();
+
+            _S = S;
             
             // UPDATE STATE ESTIMATE AND COVARIANCE
             // Update state using computed kalman gain and innovation

@@ -43,46 +43,96 @@ void graph_plot_quaternion(const std::vector<Eigen::VectorXd>& matrices, const s
     gp << "set multiplot layout 2,2\n";
 
     gp << "set title 'qw'\n";
-    gp << "plot '-' with lines title 'EKF Estimate', '-' with lines title 'targets'\n";
-    for (const auto& mat : matrices) {
+    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    for (const auto& mat : targets) {
         gp << mat(0, 0) << "\n";
     }
     gp << "e\n";
-    for (const auto& mat : targets) {
+    for (const auto& mat : matrices) {
         gp << mat(0, 0) << "\n";
     }
     gp << "e\n";
 
     gp << "set title 'qx'\n";
-    gp << "plot '-' with lines title 'EKF Estimate', '-' with lines title 'targets'\n";
-    for (const auto& mat : matrices) {
+    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    for (const auto& mat : targets) {
         gp << mat(1, 0) << "\n";
     }
     gp << "e\n";
-    for (const auto& mat : targets) {
+    for (const auto& mat : matrices) {
         gp << mat(1, 0) << "\n";
     }
     gp << "e\n";
 
     gp << "set title 'qy'\n";
-    gp << "plot '-' with lines title 'EKF Estimate', '-' with lines title 'targets'\n";
-    for (const auto& mat : matrices) {
+    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    for (const auto& mat : targets) {
         gp << mat(2, 0) << "\n";
     }
     gp << "e\n";
-    for (const auto& mat : targets) {
+    for (const auto& mat : matrices) {
         gp << mat(2, 0) << "\n";
     }
     gp << "e\n";
 
     gp << "set title 'qz'\n";
-    gp << "plot '-' with lines title 'EKF Estimate', '-' with lines title 'targets'\n";
+    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    for (const auto& mat : targets) {
+        gp << mat(3, 0) << "\n";
+    }
+    gp << "e\n";
     for (const auto& mat : matrices) {
         gp << mat(3, 0) << "\n";
     }
     gp << "e\n";
+
+    // Reset the layout to a single plot
+    gp << "unset multiplot\n";
+}
+
+/**
+ * @brief Plots three graphs, one for each position component
+ *
+ * @param [in] matrices Vector of positions as Eigen::VectorXd
+ * @param [in] targets Vector of targets as Eigen::VectorXd
+ */
+void graph_plot_position(const std::vector<Eigen::VectorXd>& matrices, const std::vector<Eigen::VectorXd>& targets) {
+    // Create a new gnuplot object
+    Gnuplot gp;
+
+    // Create four separate subplots for each row of the matrices
+    gp << "set multiplot layout 2,2\n";
+
+    gp << "set title 'X'\n";
+    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
     for (const auto& mat : targets) {
-        gp << mat(3, 0) << "\n";
+        gp << mat(0, 0) << "\n";
+    }
+    gp << "e\n";
+    for (const auto& mat : matrices) {
+        gp << mat(0, 0) << "\n";
+    }
+    gp << "e\n";
+
+    gp << "set title 'Y'\n";
+    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    for (const auto& mat : targets) {
+        gp << mat(1, 0) << "\n";
+    }
+    gp << "e\n";
+    for (const auto& mat : matrices) {
+        gp << mat(1, 0) << "\n";
+    }
+    gp << "e\n";
+
+    gp << "set title 'Z'\n";
+    gp << "plot '-' with lines lw 2 title 'Targets', '-' with lines title 'EKF Estimate'\n";
+    for (const auto& mat : targets) {
+        gp << mat(2, 0) << "\n";
+    }
+    gp << "e\n";
+    for (const auto& mat : matrices) {
+        gp << mat(2, 0) << "\n";
     }
     gp << "e\n";
 

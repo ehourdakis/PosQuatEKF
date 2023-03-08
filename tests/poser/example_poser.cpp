@@ -52,7 +52,7 @@ int main(int argc, char** argv)
     bool paused = false;
 
     // load and interpolate data
-    bool loaded = load_and_interpolate_poses("data/test.csv", poses);
+    bool loaded = load_and_interpolate_poses("data/outliers.csv", poses);
     if(!loaded) {
         std::cerr << "Could not load poser.csv file\n";
         return 0;
@@ -96,9 +96,12 @@ int main(int argc, char** argv)
             plot_ekf(pqekf.getStates(), cov_draw);
             plot_covariance(pqekf.getEKF().P.topLeftCorner<3, 3>(),
                             pqekf.getState().head<3>(), cov_draw);
-            plot_covariance(pqekf.getMeasurementCovariance().topLeftCorner<3, 3>(), 
+            // plot_covariance(pqekf.getMeasurementCovariance().topLeftCorner<3, 3>(), 
+            plot_covariance(pqekf.getEKF().getInnovationCovariance().topLeftCorner<3, 3>(), 
                             poses[i].position, cov_draw);
         }
+        std::cout << "S :" << pqekf.getEKF().getInnovationCovariance().topLeftCorner<3, 3>() << std::endl;
+        std::cout << "P :" << pqekf.getEKF().P.topLeftCorner<3, 3>() << std::endl;
 #endif
 
         std::cout << "Step: " << i << ":" << std::setprecision(3) << pqekf.getState().transpose() << std::endl;
@@ -119,14 +122,21 @@ int main(int argc, char** argv)
     
 #if(USE_GNUPLOT)
     // Plot graphs
-    std::vector<Eigen::VectorXd> orientations, targets;
+    std::vector<Eigen::VectorXd> orientations, otargets;
+    std::vector<Eigen::VectorXd> positions, ptargets;
     std::vector<double> values;
     for(unsigned i = 0; i < pqekf.getStates().size(); i++) {
         values.push_back(pqekf.getStates()[i](18));
+        
         orientations.push_back(pqekf.getStates()[i].block<4,1>(9,0));
-        targets.push_back(quaternionToVectorXd(poses[i].orientation));
+        otargets.push_back(quaternionToVectorXd(poses[i].orientation));
+
+        positions.push_back(pqekf.getStates()[i].block<3,1>(0,0));
+        ptargets.push_back(poses[i].position);
+
     }
-    graph_plot_quaternion(orientations, targets);
+    graph_plot_quaternion(orientations, otargets);
+    graph_plot_position(positions, ptargets);
 #endif
 
     return 0;

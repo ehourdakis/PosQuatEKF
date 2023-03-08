@@ -4,7 +4,10 @@ Implementation of an EKF for a position-quaternion state system.  The project ca
 ```bash
 cmake . -DUSE_GNUPLOT=ON -B build/
 cmake --build build/ --parallel -j${nproc}
-# run the test on some data
+```
+
+A test can be run using:
+```bash
 ./build/tests/poser/example_poser
 ```
 
@@ -13,7 +16,7 @@ Gnuplot can be installed using:
 sudo apt-get install gnuplot libgnuplot-iostream-dev
 ```
 
-If gnuplot is enabled the program will generate graphs for debugging:
+If Gnuplot is enabled the pqekf will generate graphs for debugging:
 
 ![Trajectory with covariance](/data/images/trajectory.png "Trajectory with covariance").
 
@@ -206,9 +209,9 @@ $$\hat{\dot{\omega_z}} = \dot{\omega_y} $$
 
 $$\hat{\dot{\omega_w}} = \dot{\omega_z} $$
 
-### Linearization of the state transition for $q, w, \dot{w}$
+### Linearization of the state transition
 
-The Jacobian matrix of $q, w, \dot{w}$ w.r.t the state represents the linearization of the rotation state transition model around the current state. We compute it below.
+The Jacobian matrix of the above process model w.r.t the state is the linearization of the state transition model around the current state. We compute it below.
 
 $$
 \displaystyle \left[\begin{array}{ccccccccccccccccccc}

@@ -53,7 +53,9 @@ int main(int argc, char** argv)
     bool paused = false; // Pause using spacebar
 
     // load and interpolate data
-    bool loaded = load_and_interpolate_poses("/files/Projects/UnderDev/PosQuatEKF/data/outliers.csv", measurements);
+    // bool loaded = load_and_interpolate_poses("data/poser.csv", measurements);
+    // bool loaded = read_poses_from_csv("data/slam.csv", measurements);
+    bool loaded = read_poses_from_csv("data/outliers.csv", measurements);
     if(!loaded) {
         std::cerr << "Could not load .csv file\n";
         return 0;
@@ -68,29 +70,40 @@ int main(int argc, char** argv)
         measurements[0].position,  // Initial position
         measurements[0].orientation, // Initial orientation
         1e-8, // Scale initial state covariance
-        1e-5, // Scale process covariance
-        1e+2)); // Scale measurement covariance
+        1e-2, // Scale process covariance
+        1e-2, // Scale measurement covariance
+        0.2)); // Outlier threshold
     
     // run a series of predict-update steps given the measurements
     for(size_t i = 1; i <= measurements.size(); i++)
     {
-        pqekf->predict();
- 
-        if((i<30)||(i%1)==0){
+        // The diff between two ROS timestamps is in nanoseconds
+        auto dt = (measurements[i].timestamp - measurements[i-1].timestamp)*1e-9;
+        pqekf->predict(dt);
+
+        if(i==30) pqekf->setRejectOutliers(true);
+        
+        // skip update every nskip
+        const auto nskip = 1;
+        if((i<30)||(i%nskip)==0){
             measurements[i].orientation.normalize();
             pqekf->update(measurements[i].position, measurements[i].orientation);
         }
 
 #if(USE_GNUPLOT)
         // Plot trajectory, measurement and process covariance.
-        if((i%15)==0){
+        if(((i-1)%15)==0){
             plot_demo(measurements, pqekf, i, cov_draw);
         }
         std::cout << "IC :" << std::endl << pqekf->getEKF()->getInnovationCovariance().topLeftCorner<3, 3>() << std::endl;
         std::cout << "P :"  << std::endl << pqekf->getEKF()->P.topLeftCorner<3, 3>() << std::endl;
 #endif
 
-        std::cout << "Step: " << i << ":" << std::setprecision(3) << pqekf->getState().transpose() << std::endl;
+        std::cout << "Timestamp: " << std::fixed << std::setprecision(0) << measurements[i].timestamp 
+            << std::setprecision(8) << " dt: " << dt << " Step: " << i 
+            << std::endl << std::setprecision(4) 
+            << "Position: " << pqekf->getState().block<3,1>(0,0).transpose() << std::endl
+            << "Orientation: " << pqekf->getState().block<4,1>(9,0).transpose() << std::endl;
 
         // Implement pause on space
         if (kbhit()) {
@@ -122,8 +135,8 @@ int main(int argc, char** argv)
         ptargets.push_back(measurements[i].position);
     }
 
-    // graph_plot_quaternion(orientations, otargets);
-    // graph_plot_position(positions, ptargets);
+    graph_plot_quaternion(orientations, otargets);
+    graph_plot_position(positions, ptargets);
 #endif
 
     return 0;

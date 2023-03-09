@@ -39,8 +39,10 @@ public:
                       const double state_covariance = 1e-5,
                       const double process_covariance = 1e-5,
                       const double measurement_covariance = 1e+2,
-                      const double outlier_threshold = 0.02)
+                      const double outlier_threshold = 0.02,
+                      const bool reject_outliers = false)
     : _outlier_threshold(outlier_threshold),
+      _reject_outliers(reject_outliers),
       _ekf(new EKF())
     {
         init_state(position, orientation);
@@ -72,12 +74,12 @@ public:
      *
      * @param num_steps The number of steps to run the prediction.
      */
-    const State predict(unsigned int num_steps=1)
+    const State predict(const double dt, unsigned int num_steps=1)
     {
         State ret;
         for(size_t i = 0; i < num_steps; i++)
         {
-            ret = _ekf->predict(sys);
+            ret = _ekf->predict(sys, dt);
             if(num_steps>1) ekf_states.push_back(ret);
         }
         return ret;
@@ -103,7 +105,8 @@ public:
         measurement.qY() = orientation.y();
         measurement.qZ() = orientation.z();
 
-        auto x_ekf = _ekf->update(om, measurement, _outlier_threshold); 
+        auto x_ekf = _ekf->update(om, measurement, 
+            (_reject_outliers)?_outlier_threshold:-1.0); 
         ekf_states.push_back(x_ekf);
 
         return x_ekf;
@@ -170,7 +173,7 @@ public:
     /**
      * @brief Set the measurement covariance matrix.
      */
-    const void setMeasurementCovariance(const Eigen::MatrixXd& cov)
+    void setMeasurementCovariance(const Eigen::MatrixXd& cov)
     {
         return om.setCovariance(cov);
     }
@@ -186,12 +189,45 @@ public:
     /**
      * @brief Set the process covariance matrix.
      */
-    const void setProcessCovariance(const Eigen::MatrixXd& cov)
+    void setProcessCovariance(const Eigen::MatrixXd& cov)
     {
         return sys.setCovariance(cov);
     }
+
+    /**
+     * @brief Get the outlier threshold.
+     */
+    const double getOutlierThreshold()
+    {
+        return _outlier_threshold;
+    }
+
+    /**
+     * @brief Set the outlier threshold.
+     */
+    void setOutlierThreshold(const double ot)
+    {
+        _outlier_threshold = ot;
+    }
+
+    /**
+     * @brief Get the outlier threshold.
+     */
+    bool getRejectOutliers()
+    {
+        return _reject_outliers;
+    }
+
+    /**
+     * @brief Set the outlier threshold.
+     */
+    void setRejectOutliers(bool ro)
+    {
+        _reject_outliers = ro;
+    }
 private:
-    const double _outlier_threshold;
+    double _outlier_threshold;
+    bool _reject_outliers;
 
     Control u; // The control model
     SystemModel sys; // The system model

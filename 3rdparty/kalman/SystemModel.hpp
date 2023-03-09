@@ -58,7 +58,7 @@ namespace Kalman {
          * Computes the predicted system state in the next timestep given
          * the current state x and the control input u
          */
-        virtual State f(const State& x, const Control& u) const = 0;
+        virtual State f(const State& x, const Control& u, const double dt) const = 0;
         
     protected:
         SystemModel() {}

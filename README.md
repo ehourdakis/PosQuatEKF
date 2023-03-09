@@ -1,5 +1,5 @@
 ## PosQuatEKF
-Implementation of an EKF for a position-quaternion state system.  The project can be compiled by issuing the following commands:
+Implementation of an EKF for a position-quaternion state space system.  The project can be compiled by issuing the following commands:
 
 ```bash
 cmake . -DUSE_GNUPLOT=ON -B build/
@@ -11,16 +11,16 @@ A test can be run using:
 ./build/tests/poser/example_poser
 ```
 
-Gnuplot can be installed using:
+gnuplot can be installed using:
 ```bash
 sudo apt-get install gnuplot libgnuplot-iostream-dev
 ```
 
-If Gnuplot is enabled, pqekf will generate graphs for debugging:
+If gnuplot is enabled, pqekf will generate graphs for debugging:
 
 ![Trajectory with covariance](/data/images/trajectory.png "Trajectory with covariance").
 
-The EKF is robust, i.e. it can reject outliers in extreme cases:
+pqekf is robust, i.e. it can reject outliers in extreme cases:
 
 ![Plots](/data/images/plots_pos.png "Position plot").
 ![Plots](/data/images/plots_quat.png "Quaternion plot").

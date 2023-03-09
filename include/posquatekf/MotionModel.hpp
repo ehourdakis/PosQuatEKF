@@ -111,7 +111,7 @@ public:
      * @param [in] u The control vector input
      * @returns The (predicted) system state in the next time-step
      */
-    S f(const S& x, const C&)const // u) const
+    S f(const S& x, const C&, const double dt) const
     {
         const double sx    = x.x();
         const double sy    = x.y();
@@ -137,25 +137,23 @@ public:
         S x_;
         x_.setZero();
         
-        double dt_ = 0.05;
-
         // evolution of state
-        x_.x() = sx + svx * dt_ + 0.5 * sax * dt_ * dt_;
-        x_.y() = sy + svy * dt_ + 0.5 * say * dt_ * dt_;
-        x_.z() = sz + svz * dt_ + 0.5 * saz * dt_ * dt_;
-        x_.vx() = svx + sax * dt_;
-        x_.vy() = svy + say * dt_;
-        x_.vz() = svz + saz * dt_;
+        x_.x() = sx + svx * dt + 0.5 * sax * dt * dt;
+        x_.y() = sy + svy * dt + 0.5 * say * dt * dt;
+        x_.z() = sz + svz * dt + 0.5 * saz * dt * dt;
+        x_.vx() = svx + sax * dt;
+        x_.vy() = svy + say * dt;
+        x_.vz() = svz + saz * dt;
         x_.ax() = sax;
         x_.ay() = say;
         x_.az() = saz;
-        x_.qw() = sqw - 0.5 * dt_ * (swx * sqx + swy * sqy + swz * sqz);
-        x_.qx() = sqx + 0.5 * dt_ * (swx * sqw - swy * sqz + swz * sqy);
-        x_.qy() = sqy + 0.5 * dt_ * (swx * sqz + swy * sqw - swz * sqx);
-        x_.qz() = sqz - 0.5 * dt_ * (swx * sqy - swy * sqx - swz * sqw);
-        x_.wx() = swx + sdwx * dt_;
-        x_.wy() = swy + sdwy * dt_;
-        x_.wz() = swz + sdwz * dt_;
+        x_.qw() = sqw - 0.5 * dt * (swx * sqx + swy * sqy + swz * sqz);
+        x_.qx() = sqx + 0.5 * dt * (swx * sqw - swy * sqz + swz * sqy);
+        x_.qy() = sqy + 0.5 * dt * (swx * sqz + swy * sqw - swz * sqx);
+        x_.qz() = sqz - 0.5 * dt * (swx * sqy - swy * sqx - swz * sqw);
+        x_.wx() = swx + sdwx * dt;
+        x_.wy() = swy + sdwy * dt;
+        x_.wz() = swz + sdwz * dt;
         x_.dwx() = sdwx;
         x_.dwy() = sdwy;
         x_.dwz() = sdwz;
@@ -185,7 +183,7 @@ protected:
      * @param x The current system state around which to linearize
      * @param u The current system control input
      */
-    void updateJacobians( const S& x, const C& )
+    void updateJacobians( const S& x, const C&, const double dt )
     {
         //! System model noise jacobian
         this->W.setIdentity();
@@ -202,60 +200,58 @@ protected:
         double swy  = x.wy();
         double swz  = x.wz();
 
-        //TODO: Get dt from timestamp difference
-        double dt_ = 0.05;
 
         //! System model jacobian
         this->F.setIdentity();
 
-        this->F(0, 3) = dt_;
-        this->F(1, 4) = dt_;
-        this->F(2, 5) = dt_;
+        this->F(0, 3) = dt;
+        this->F(1, 4) = dt;
+        this->F(2, 5) = dt;
 
-        this->F(0, 6) = 0.5 * dt_ * dt_;
-        this->F(1, 7) = 0.5 * dt_ * dt_;
-        this->F(2, 8) = 0.5 * dt_ * dt_;
+        this->F(0, 6) = 0.5 * dt * dt;
+        this->F(1, 7) = 0.5 * dt * dt;
+        this->F(2, 8) = 0.5 * dt * dt;
 
-        this->F(3, 6) = dt_;
-        this->F(4, 7) = dt_;
-        this->F(5, 8) = dt_;
+        this->F(3, 6) = dt;
+        this->F(4, 7) = dt;
+        this->F(5, 8) = dt;
 
         this->F(9, 9) = 1.0;
-        this->F(9, 10) = -0.5 * dt_ * swx;
-        this->F(9, 11) = -0.5 * dt_ * swy;
-        this->F(9, 12) = -0.5 * dt_ * swz;
-        this->F(9, 13) = -0.5 * dt_ * sqx;
-        this->F(9, 14) = -0.5 * dt_ * sqy;
-        this->F(9, 15) = -0.5 * dt_ * sqz;
+        this->F(9, 10) = -0.5 * dt * swx;
+        this->F(9, 11) = -0.5 * dt * swy;
+        this->F(9, 12) = -0.5 * dt * swz;
+        this->F(9, 13) = -0.5 * dt * sqx;
+        this->F(9, 14) = -0.5 * dt * sqy;
+        this->F(9, 15) = -0.5 * dt * sqz;
 
-        this->F(10, 9) = 0.5 * dt_ * swx;
+        this->F(10, 9) = 0.5 * dt * swx;
         this->F(10, 10) = 1.0;
-        this->F(10, 11) = 0.5 * dt_ * swz;
-        this->F(10, 12) = -0.5 * dt_ * swy;
-        this->F(10, 13) = 0.5 * dt_ * sqw;
-        this->F(10, 14) = -0.5 * dt_ * sqz;
-        this->F(10, 15) = 0.5 * dt_ * sqy;
+        this->F(10, 11) = 0.5 * dt * swz;
+        this->F(10, 12) = -0.5 * dt * swy;
+        this->F(10, 13) = 0.5 * dt * sqw;
+        this->F(10, 14) = -0.5 * dt * sqz;
+        this->F(10, 15) = 0.5 * dt * sqy;
 
-        this->F(11, 9) = 0.5 * dt_ * swy;
-        this->F(11, 10) = -0.5 * dt_ * swz;
+        this->F(11, 9) = 0.5 * dt * swy;
+        this->F(11, 10) = -0.5 * dt * swz;
         this->F(11, 11) = 1.0;
-        this->F(11, 12) = 0.5 * dt_ * swx;
-        this->F(11, 13) = 0.5 * dt_ * sqz;
-        this->F(11, 14) = 0.5 * dt_ * sqw;
-        this->F(11, 15) = -0.5 * dt_ * sqx;
+        this->F(11, 12) = 0.5 * dt * swx;
+        this->F(11, 13) = 0.5 * dt * sqz;
+        this->F(11, 14) = 0.5 * dt * sqw;
+        this->F(11, 15) = -0.5 * dt * sqx;
 
-        this->F(12, 9) = 0.5 * dt_ * swz;
-        this->F(12, 10) = 0.5 * dt_ * swy;
-        this->F(12, 11) = -0.5 * dt_ * swx;
+        this->F(12, 9) = 0.5 * dt * swz;
+        this->F(12, 10) = 0.5 * dt * swy;
+        this->F(12, 11) = -0.5 * dt * swx;
         this->F(12, 12) = 1.0;
-        this->F(12, 13) = -0.5 * dt_ * sqy;
-        this->F(12, 14) = 0.5 * dt_ * sqx;
-        this->F(12, 15) = 0.5 * dt_ * sqw;
+        this->F(12, 13) = -0.5 * dt * sqy;
+        this->F(12, 14) = 0.5 * dt * sqx;
+        this->F(12, 15) = 0.5 * dt * sqw;
 
         // Angular velocity Jacobian
-        this->F(13, 16) = dt_;
-        this->F(14, 17) = dt_;
-        this->F(15, 18) = dt_;
+        this->F(13, 16) = dt;
+        this->F(14, 17) = dt;
+        this->F(15, 18) = dt;
     }
 };
 

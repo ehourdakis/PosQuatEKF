@@ -245,20 +245,43 @@ void plot_demo( const std::vector<ekf::Pose>& targets,
                 const int index,
                 Gnuplot &gp)
 {
-    gp << "set title 'Trajectory, process and measurement Covariance'" << std::endl;
-    gp << "set xlabel 'x'" << std::endl;
-    gp << "set ylabel 'y'" << std::endl;
-    gp << "set zlabel 'z'" << std::endl;
-    gp << "set xrange [-5:5]" << std::endl;
-    gp << "set yrange [-5:5]" << std::endl;
-    gp << "set zrange [-1:3]" << std::endl;
-    // gp << "set view 49, 48, 3, 1"<< std::endl;
+    if(index == 1)
+    {
+        auto x_comp = [](const ekf::Pose& a, const ekf::Pose& b) { return a.position.x() < b.position.x(); };
+        auto y_comp = [](const ekf::Pose& a, const ekf::Pose& b) { return a.position.y() < b.position.y(); };
+        auto z_comp = [](const ekf::Pose& a, const ekf::Pose& b) { return a.position.z() < b.position.z(); };
+
+        auto minmax_x = std::minmax_element(targets.begin(), targets.end(), x_comp);
+        auto minmax_y = std::minmax_element(targets.begin(), targets.end(), y_comp);
+        auto minmax_z = std::minmax_element(targets.begin(), targets.end(), z_comp);
+
+        // Access the min/max values
+        double min_x = minmax_x.first->position.x();
+        double max_x = minmax_x.second->position.x();
+
+        double min_y = minmax_y.first->position.y();
+        double max_y = minmax_y.second->position.y();
+
+        double min_z = minmax_z.first->position.z() - 2.0;
+        double max_z = minmax_z.second->position.z() + 2.0;
+
+        gp << "set xrange [" << min_x << ":" << max_x << "]" << std::endl;
+        gp << "set yrange [" << min_y << ":" << max_y << "]" << std::endl;
+        gp << "set zrange [" << min_z << ":" << max_z << "]" << std::endl;
+
+        gp << "set title 'Trajectory, process and measurement Covariance'" << std::endl;
+        gp << "set xlabel 'x'" << std::endl;
+        gp << "set ylabel 'y'" << std::endl;
+        gp << "set zlabel 'z'" << std::endl;
+        // gp << "set view 49, 48, 3, 1"<< std::endl;
+    }
 
     gp << "splot ";
     gp << "'-' with linespoints pointtype 7 linecolor rgb 'blue' lw 1 ps 0.8 title 'EKF'";
     gp << ",'-' with linespoints pointtype 7 linecolor rgb 'red' lw 1 ps 0.8 title 'Measurements w outliers'";
-    gp << ", '-' with lines lw 1.0 linecolor rgb 'red' title 'Process Covariance'";
-    gp << ", '-' with lines lw 0.8 title 'Measurement Covariance'";
+    gp << ", '-' with lines lw 1.0 linecolor rgb 'blue' title 'Process Covariance'";
+    // plot transparent line. In #90D13030, first two digits (90) are transparency, remaining RGB code
+    gp << ", '-' with lines lw 0.5 lc rgb \"#95FF6666\" title 'Measurement Covariance'";
     gp << std::endl;
 
     plot_ekf(pqekf->getStates(), gp);
@@ -268,9 +291,9 @@ void plot_demo( const std::vector<ekf::Pose>& targets,
     plot_trajectory(std::vector<Pose>(first, last), gp);
     
     plot_covariance(pqekf->getEKF()->P.topLeftCorner<3, 3>(),
-                    pqekf->getState().head<3>(), gp, 0.2);
+                    pqekf->getState().head<3>(), gp, 10);//, 0.2);
     plot_covariance(pqekf->getEKF()->getInnovationCovariance().topLeftCorner<3, 3>(), 
-                    targets[index].position, gp, 0.01);
+                    targets[index].position, gp, 10);//, 0.01);
 }
 
 }

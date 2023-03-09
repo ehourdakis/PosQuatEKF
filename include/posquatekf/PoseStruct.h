@@ -34,7 +34,7 @@ public:
 public:
     Eigen::Vector3d position = Eigen::Vector3d(0,0,0);
     Eigen::Quaterniond orientation = Eigen::Quaterniond();
-    double timestamp;
+    long long timestamp;
 };
 
 /**
@@ -62,9 +62,9 @@ bool read_poses_from_csv(const std::string& filename, std::vector<Pose> &poses) 
             Pose pose;
             for (int i = 0; i < 46; i++) {
                 std::getline(ss, field, ',');
-                //std::cout << "Field is: " << field << std::endl;
+                // std::cout << "Field is: " << field << std::endl;
                 if (i == 0) {
-                    pose.timestamp = std::stod(field);
+                    pose.timestamp = std::stoll(field);
                 } else if (i >= 4 && i < 7 ) {
                     pose.position(i - 4) = std::stod(field);
                 } else if (i >= 7 && i <= 10) {

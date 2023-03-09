@@ -22,6 +22,7 @@ If gnuplot is enabled, pqekf will generate graphs for debugging:
 
 pqekf is robust, i.e. it can reject outliers in extreme cases:
 
+![Plots](/data/images/outliers.png "Outlier plot").
 ![Plots](/data/images/plots_pos.png "Position plot").
 ![Plots](/data/images/plots_quat.png "Quaternion plot").
 

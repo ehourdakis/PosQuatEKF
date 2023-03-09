@@ -153,7 +153,6 @@ void plot_ekf(const std::vector<FELICE::ekf::State<double>>& poses, Gnuplot &gp)
 
     // Extract position and orientation data from the Pose struct
     for (const auto& pose : poses) {
-        if(skip++%15!=0) continue;
         x.push_back(pose(0));
         y.push_back(pose(1));
         z.push_back(pose(2));
@@ -180,7 +179,6 @@ void plot_trajectory(const std::vector<ekf::Pose>& poses, Gnuplot &gp) {
 
     // Extract position and orientation data from the Pose struct
     for (const auto& pose : poses) {
-        if(skip++%20!=0) continue;
         x.push_back(pose.position.x());
         y.push_back(pose.position.y());
         z.push_back(pose.position.z());
@@ -277,19 +275,19 @@ void plot_demo( const std::vector<ekf::Pose>& targets,
     }
 
     gp << "splot ";
-    gp << "'-' with linespoints pointtype 7 linecolor rgb 'blue' lw 1 ps 0.8 title 'EKF'";
-    gp << ",'-' with linespoints pointtype 7 linecolor rgb 'red' lw 1 ps 0.8 title 'Measurements w outliers'";
+    gp << "'-' with linespoints pointtype 7 linecolor rgb 'red' lw 1 ps 0.8 title 'Measurements w outliers'";
+    gp << ",'-' with linespoints pointtype 7 linecolor rgb 'blue' lw 1 ps 0.8 title 'EKF'";
     gp << ", '-' with lines lw 1.0 linecolor rgb 'blue' title 'Process Covariance'";
     // plot transparent line. In #90D13030, first two digits (90) are transparency, remaining RGB code
     gp << ", '-' with lines lw 0.5 lc rgb \"#95FF6666\" title 'Measurement Covariance'";
     gp << std::endl;
 
-    plot_ekf(pqekf->getStates(), gp);
-
     std::vector<Pose>::const_iterator first = targets.begin();
     std::vector<Pose>::const_iterator last = targets.begin() + index;
     plot_trajectory(std::vector<Pose>(first, last), gp);
     
+    plot_ekf(pqekf->getStates(), gp);
+
     plot_covariance(pqekf->getEKF()->P.topLeftCorner<3, 3>(),
                     pqekf->getState().head<3>(), gp, 10);//, 0.2);
     plot_covariance(pqekf->getEKF()->getInnovationCovariance().topLeftCorner<3, 3>(), 

@@ -49,7 +49,8 @@ int kbhit() {
 int main(int argc, char** argv)
 {
     std::vector<Pose> measurements;
-    
+    PoseQuaternionEKFd::States ekf_states; // the stored states of the EKF
+
     bool paused = false; // Pause using spacebar
 
     // load and interpolate data
@@ -79,21 +80,24 @@ int main(int argc, char** argv)
     {
         // The diff between two ROS timestamps is in nanoseconds
         auto dt = (measurements[i].timestamp - measurements[i-1].timestamp)*1e-9;
-        pqekf->predict(dt);
+        auto current_state = pqekf->predict(dt);
 
+        // allow the process model to build up before rejecting outliers
         if(i==30) pqekf->setRejectOutliers(true);
         
         // skip update every nskip
         const auto nskip = 1;
         if((i<30)||(i%nskip)==0){
             measurements[i].orientation.normalize();
-            pqekf->update(measurements[i].position, measurements[i].orientation);
+            current_state = pqekf->update(measurements[i].position, measurements[i].orientation);
         }
+
+        ekf_states.push_back(current_state);
 
 #if(USE_GNUPLOT)
         // Plot trajectory, measurement and process covariance.
         if(((i-1)%15)==0){
-            plot_demo(measurements, pqekf, i, cov_draw);
+            plot_demo(measurements, ekf_states, pqekf, i, cov_draw);
         }
         std::cout << "IC :" << std::endl << pqekf->getEKF()->getInnovationCovariance().topLeftCorner<3, 3>() << std::endl;
         std::cout << "P :"  << std::endl << pqekf->getEKF()->P.topLeftCorner<3, 3>() << std::endl;
@@ -125,13 +129,13 @@ int main(int argc, char** argv)
     std::vector<Eigen::VectorXd> positions, ptargets;
     std::vector<double> values;
 
-    for(unsigned i = 0; i < pqekf->getStates().size(); i++) {
-        values.push_back(pqekf->getStates()[i](18));
+    for(unsigned i = 0; i < ekf_states.size(); i++) {
+        values.push_back(ekf_states[i](18));
         
-        orientations.push_back(pqekf->getStates()[i].block<4,1>(9,0));
+        orientations.push_back(ekf_states[i].block<4,1>(9,0));
         otargets.push_back(quaternionToVectorXd(measurements[i].orientation));
 
-        positions.push_back(pqekf->getStates()[i].block<3,1>(0,0));
+        positions.push_back(ekf_states[i].block<3,1>(0,0));
         ptargets.push_back(measurements[i].position);
     }
 

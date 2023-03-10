@@ -233,12 +233,14 @@ void plot_covariance(const Eigen::MatrixXd& covariance, const Eigen::VectorXd& m
  * @brief Plots the poser demo, i.e. the trajectory along with the process
  * and measurement covariances.
  *
- * @param [in] poses Estimated EKF poses
- * @param [in] targets The loaded measurements
- * @param [in] index The EKF index
- * @param [in] covariance A 3x3 Covariance matrix
+ * @param [in] targets The measurements 
+ * @param [in] states The EKF estimates
+ * @param [in] pqekf A smart pointer to pqekf
+ * @param [in] index The simulation index
+ * @param [in] gp Gnuplot reference
  */
 void plot_demo( const std::vector<ekf::Pose>& targets, 
+                const PoseQuaternionEKF<double>::States& states,
                 std::unique_ptr<PoseQuaternionEKF<double> >& pqekf,
                 const int index,
                 Gnuplot &gp)
@@ -286,7 +288,7 @@ void plot_demo( const std::vector<ekf::Pose>& targets,
     std::vector<Pose>::const_iterator last = targets.begin() + index;
     plot_trajectory(std::vector<Pose>(first, last), gp);
     
-    plot_ekf(pqekf->getStates(), gp);
+    plot_ekf(states, gp);
 
     plot_covariance(pqekf->getEKF()->P.topLeftCorner<3, 3>(),
                     pqekf->getState().head<3>(), gp, 10);//, 0.2);

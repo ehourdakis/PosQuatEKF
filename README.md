@@ -299,3 +299,12 @@ $$
 
 We set $\sigma_p^2$ = 1, $\sigma_{qw}^2 = 2$ and $\sigma_{q_{x,y,z}}^2 = 3$. 
 
+### Outlier rejection
+pqekf filters outliers using the Mahalanobis distance, to take into account the covariance structure of the distribution.   
+For each measurement, we compute the mahalanobis distance from the predicted measurement based the innovation covariance.
+
+Given a predicted measurement $\boldsymbol{h}$ with mean vector $\boldsymbol{\mu_h}$ and innovation covariance matrix $\boldsymbol{C}$, the Mahalanobis distance $d_M(\boldsymbol{r})$ of an observation vector $\boldsymbol{r}$ is defined as:
+
+$$ d_M(\boldsymbol{r}) = \sqrt{(\boldsymbol{r} - \boldsymbol{\mu_h})^T \boldsymbol{C}^{-1} (\boldsymbol{r} - \boldsymbol{\mu_h})} $$
+
+Measurements with $d_M(\boldsymbol{r})$ over some threshold are discarded. 

@@ -8,10 +8,11 @@ namespace ekf
 {
 
 /**
- * @brief EKF filter for position and quaternion.
+ * @brief EKF filter for a position and quaternion state space system.
  *
  * The ekf tracks the state through a series of predict() and 
- * update() functions.
+ * update() functions. It is robust to outliers, using the mahalanobis
+ * distance to filter measurements.
  *
  * @param T Numeric scalar type
  */
@@ -80,7 +81,6 @@ public:
         for(size_t i = 0; i < num_steps; i++)
         {
             ret = _ekf->predict(sys, dt);
-            if(num_steps>1) ekf_states.push_back(ret);
         }
         return ret;
     }
@@ -107,7 +107,6 @@ public:
 
         auto x_ekf = _ekf->update(om, measurement, 
             (_reject_outliers)?_outlier_threshold:-1.0); 
-        ekf_states.push_back(x_ekf);
 
         return x_ekf;
     }
@@ -118,14 +117,6 @@ public:
     const State& getState() 
     { 
         return _ekf->getState();
-    }
-
-    /**
-     * @brief Return all stored ekf States.
-     */
-    const States &getStates()
-    {
-        return ekf_states;
     }
 
     /**
@@ -151,7 +142,6 @@ public:
         x.qz() = orientation.z();
 
         _ekf->init(x);
-        ekf_states.push_back(x);
     }
 
     /**
@@ -234,9 +224,6 @@ private:
     LocalizationModel om; // The localization measurement model
     
     std::unique_ptr<EKF> _ekf; // the EKF model
-
-    //TODO: Remove storing states
-    States ekf_states; // the stored states of the EKF
 };
 
 }

@@ -9,7 +9,7 @@
 #include <chrono>
 
 #include "PoseStruct.h"
-#include "pqekf.h"
+#include "pqekf.hpp"
 
 #if(USE_GNUPLOT)
 #include "plots.h"
@@ -20,8 +20,7 @@
 #include <termios.h>
 #include <stdbool.h>
 
-using namespace FELICE::ekf;
-using PoseQuaternionEKFd = PoseQuaternionEKF<double>;
+using PoseQuaternionEKFd = ekf::PoseQuaternionEKF<double>;
 	
 /**
  * @brief Non-blocking character reading.
@@ -48,15 +47,15 @@ int kbhit() {
 
 int main(int argc, char** argv)
 {
-    std::vector<Pose> measurements;
-    PoseQuaternionEKFd::States ekf_states; // the stored states of the EKF
+    std::vector<poses::Pose> measurements;
+    std::vector<PoseQuaternionEKFd::State > ekf_states; // the stored states of the EKF
 
     bool paused = false; // Pause using spacebar
 
     // load and interpolate data
-    // bool loaded = load_and_interpolate_poses("data/poser.csv", measurements);
-    // bool loaded = read_poses_from_csv("data/slam.csv", measurements);
-    bool loaded = read_poses_from_csv("data/outliers.csv", measurements);
+    // bool loaded = poses::load_and_interpolate_poses("data/poser.csv", measurements);
+    // bool loaded = poses::read_poses_from_csv("data/slam.csv", measurements);
+    bool loaded = poses::read_poses_from_csv("data/outliers.csv", measurements);
     if(!loaded) {
         std::cerr << "Could not load .csv file\n";
         return 0;
@@ -70,7 +69,7 @@ int main(int argc, char** argv)
     std::unique_ptr<PoseQuaternionEKFd> pqekf(new PoseQuaternionEKFd(
         measurements[0].position,  // Initial position
         measurements[0].orientation, // Initial orientation
-        1e-8, // Scale initial state covariance
+        1e-2, // Scale initial state covariance
         1e-2, // Scale process covariance
         1e-2, // Scale measurement covariance
         0.2)); // Outlier threshold
@@ -96,17 +95,16 @@ int main(int argc, char** argv)
 
 #if(USE_GNUPLOT)
         // Plot trajectory, measurement and process covariance.
-        if(((i-1)%15)==0){
-            plot_demo(measurements, ekf_states, pqekf, i, cov_draw);
+        if(((i-1)%50)==0){
+            poses::plot_demo(measurements, ekf_states, pqekf, i, cov_draw);
         }
-        std::cout << "IC :" << std::endl << pqekf->getEKF()->getInnovationCovariance().topLeftCorner<3, 3>() << std::endl;
-        std::cout << "P :"  << std::endl << pqekf->getEKF()->P.topLeftCorner<3, 3>() << std::endl;
+        // std::cout << "IC :" << std::endl << pqekf->getEKF()->getInnovationCovariance().topLeftCorner<3, 3>() << std::endl;
+        // std::cout << "P :"  << std::endl << pqekf->getEKF()->getStateCovariance.topLeftCorner<3, 3>() << std::endl;
 #endif
-
-        std::cout << "Timestamp: " << std::fixed << std::setprecision(0) << measurements[i].timestamp 
+        std::cout << " Timestamp: " << std::fixed << std::setprecision(0) << measurements[i].timestamp 
             << std::setprecision(8) << " dt: " << dt << " Step: " << i 
             << std::endl << std::setprecision(4) 
-            << "Position: " << pqekf->getState().block<3,1>(0,0).transpose() << std::endl
+            << " Position: " << pqekf->getState().block<3,1>(0,0).transpose() << std::endl
             << "Orientation: " << pqekf->getState().block<4,1>(9,0).transpose() << std::endl;
 
         // Implement pause on space
@@ -133,14 +131,14 @@ int main(int argc, char** argv)
         values.push_back(ekf_states[i](18));
         
         orientations.push_back(ekf_states[i].block<4,1>(9,0));
-        otargets.push_back(quaternionToVectorXd(measurements[i].orientation));
+        otargets.push_back(poses::quaternionToVectorXd(measurements[i].orientation));
 
         positions.push_back(ekf_states[i].block<3,1>(0,0));
         ptargets.push_back(measurements[i].position);
     }
 
-    graph_plot_quaternion(orientations, otargets);
-    graph_plot_position(positions, ptargets);
+    poses::graph_plot_quaternion(orientations, otargets);
+    poses::graph_plot_position(positions, ptargets);
 #endif
 
     return 0;

@@ -64,7 +64,8 @@ where $\otimes$ is the quaternion product operator, and $\Omega$,
 
 $$\begin{split}\boldsymbol\Omega =
 \begin{bmatrix}
-0 & -\boldsymbol\omega^T\\ \boldsymbol\omega & \lfloor\boldsymbol\omega\rfloor_\times
+0 & -\boldsymbol\omega^T \\ 
+\boldsymbol\omega & \lfloor\boldsymbol\omega\rfloor_\times
 \end{bmatrix} =
 \begin{bmatrix}
 0 & -\omega_x & -\omega_y & -\omega_z \\
@@ -78,7 +79,7 @@ The vector $\lfloor\mathbf{\omega}\rfloor_\times$ is the skew-symmetric matrix r
 
 Check this link <a name="cite_ref-3"></a>[link](#cite_note-3) for more info on the above equation. 
 
-Note that this equation assumes that the angular velocity vector is constant over the time period $\Delta t$, and that the orientation change is small. If this is the case in our data then Euler sufficies. However due to the nature of Poser, updates may be posted over longer time periods. For larger orientation changes or time periods, higher order numerical integration methods may be necessary to solve the equation. 
+Note that this equation assumes that the angular velocity vector is constant over the time period $\Delta t$, and that the orientation change is small. If this is the case in our data then Euler sufficies. For updates be posted over long time periods or with large orientation changes, higher order numerical integration methods may be necessary to solve the equation. 
 
 #### Quaternion state transition
 Our state-space system has the form: $\dot{\mathbf q} = \mathbf{Aq}$, where $\mathbf A$ is the system dynamics matrix, i.e. a set of continuous differential equations. We want to find the matrix $\mathbf F$ that propagates the discrete state $\mathbf q$ over the interval $\Delta t$, i.e. $\mathbf q_t = \mathbf F\mathbf q_{t-1}$.
@@ -287,7 +288,7 @@ We will design our variances to ensure that our measurements are facilitated by 
 
 ### Measurement Noise Covariance
 
-The observability of yaw in RGB-D SLAM can be limited by the quality of the depth information and the presence of large planar surfaces. Thus, we expect degeneracies in the estimation of the relative pose in the CRF use-case. Based on this assumption, we initialize our rotation estimate noise to larger values.
+The observability of yaw in RGB-D SLAM can be limited by the quality of the depth information and the presence of large planar surfaces. Thus, we expect degeneracies in the estimation of the relative pose. Based on this assumption, we initialize our rotation estimate noise to larger values.
 
 $$
   R =
@@ -300,8 +301,7 @@ $$
 We set $\sigma_p^2$ = 1, $\sigma_{qw}^2 = 2$ and $\sigma_{q_{x,y,z}}^2 = 3$. 
 
 ### Outlier rejection
-pqekf filters outliers using the Mahalanobis distance, to take into account the covariance structure of the distribution.   
-For each measurement, we compute the mahalanobis distance from the predicted measurement based the innovation covariance.
+pqekf filters outliers using the Mahalanobis distance, to take into account the covariance structure of the distribution. For each measurement, we compute the mahalanobis distance from the predicted measurement based the innovation covariance.
 
 Given a predicted measurement $\boldsymbol{h}$ with mean vector $\boldsymbol{\mu_h}$ and innovation covariance matrix $\boldsymbol{C}$, the Mahalanobis distance $d_M(\boldsymbol{r})$ of an observation vector $\boldsymbol{r}$ is defined as:
 

@@ -1,9 +1,5 @@
-#include <ExtendedKalmanFilter.hpp>
-#include "MotionModel.hpp"
-#include "LocalizationMeasurementModel.hpp"
+#include "ExtendedKalmanFilter.hpp"
 
-namespace FELICE
-{
 namespace ekf
 {
 
@@ -21,13 +17,9 @@ class PoseQuaternionEKF {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
-    using State = ekf::State<T>;
-    using Control = ekf::Control<T>;
-    using SystemModel = ekf::SystemModel<T>;
-    using LocalizationMeasurement = ekf::LocalizationMeasurement<T>;
-    using LocalizationModel = ekf::LocalizationMeasurementModel<T>;
-    using States = std::vector<State>;
-    using EKF = Kalman::ExtendedKalmanFilter<State>;
+    using EKF = ExtendedKalmanFilter<T>;
+    using State = EKF::State;
+    using Measurement = EKF::Measurement;
 
     /**
      * @brief Initialize the EKF using a position and quaternion.
@@ -48,13 +40,9 @@ public:
     {
         init_state(position, orientation);
 
-        _ekf->P = Eigen::MatrixXd::Identity(19, 19)*state_covariance;
-
-        Eigen::MatrixXd proc_cov = Eigen::MatrixXd::Identity(19, 19)*process_covariance;
-        sys.setCovariance(proc_cov);
-
-        Eigen::MatrixXd meas_cov = Eigen::MatrixXd::Identity(7, 7)*measurement_covariance;
-        om.setCovariance(meas_cov);
+        _ekf->setStateCovariance(EKF::Square::Identity()*state_covariance);
+        _ekf->setProcessCovariance(EKF::Square::Identity()*process_covariance);
+        _ekf->setMeasurementCovariance(EKF::MCovariance::Identity()*measurement_covariance);
     }
     /**
      * @brief Destructor. 
@@ -70,21 +58,18 @@ public:
      *
      * This will compute the next state of the EKF based on its previous
      * state estimate and the state model transition. 
-     * If the number of steps given is larger than 1, i.e. there is no 
-     * subsequent call to update, the function will store the estimated pose, 
      *
-     * @param num_steps The number of steps to run the prediction.
+     * @param dt The forward dt time to make prediction
      */
-    const State predict(const double dt, unsigned int num_steps=1)
+    const State predict(const double dt)
     {
         State ret;
-        for(size_t i = 0; i < num_steps; i++)
-        {
-            ret = _ekf->predict(sys, dt);
-        }
+        
+        ret = _ekf->predict(dt);
+        
         return ret;
     }
-
+    
     /**
      * @brief Update the EKF given a position and orientation measurement.
      *
@@ -96,17 +81,16 @@ public:
      */
     const State update(const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation)
     {
-        LocalizationMeasurement measurement;
-        measurement.x()  = position(0);
-        measurement.y()  = position(1);
-        measurement.z()  = position(2);
-        measurement.qW() = orientation.w();
-        measurement.qX() = orientation.x();
-        measurement.qY() = orientation.y();
-        measurement.qZ() = orientation.z();
+        Measurement measurement;
+        measurement(0) = position(0);
+        measurement(1) = position(1);
+        measurement(2) = position(2);
+        measurement(3) = orientation.w();
+        measurement(4) = orientation.x();
+        measurement(5) = orientation.y();
+        measurement(6) = orientation.z();
 
-        auto x_ekf = _ekf->update(om, measurement, 
-            (_reject_outliers)?_outlier_threshold:-1.0); 
+        auto x_ekf = _ekf->update(measurement, (_reject_outliers)?_outlier_threshold:-1.0); 
 
         return x_ekf;
     }
@@ -114,7 +98,7 @@ public:
     /**
      * @brief Return the current EKF state.
      */
-    const State& getState() 
+    inline const State& getState() 
     { 
         return _ekf->getState();
     }
@@ -132,16 +116,16 @@ public:
     {
         State x;
         x.setZero();
-        x.x() = position(0);
-        x.y() = position(1);
-        x.z() = position(2);
 
-        x.qw() = orientation.w();
-        x.qx() = orientation.x();
-        x.qy() = orientation.y();
-        x.qz() = orientation.z();
+        x(0)= position(0);
+        x(1)= position(1);
+        x(2)= position(2);
+        x(9) = orientation.w();
+        x(10) = orientation.x();
+        x(11) = orientation.y();
+        x(12) = orientation.z();
 
-        _ekf->init(x);
+        _ekf->setState(x);
     }
 
     /**
@@ -153,41 +137,9 @@ public:
     }
 
     /**
-     * @brief Get the measurement covariance matrix.
-     */
-    const Eigen::MatrixXd getMeasurementCovariance()
-    {
-        return om.getCovariance();
-    }
-
-    /**
-     * @brief Set the measurement covariance matrix.
-     */
-    void setMeasurementCovariance(const Eigen::MatrixXd& cov)
-    {
-        return om.setCovariance(cov);
-    }
-
-    /**
-     * @brief Get the process covariance matrix.
-     */
-    const Eigen::MatrixXd getProcessCovariance()
-    {
-        return sys.getCovariance();
-    }
-
-    /**
-     * @brief Set the process covariance matrix.
-     */
-    void setProcessCovariance(const Eigen::MatrixXd& cov)
-    {
-        return sys.setCovariance(cov);
-    }
-
-    /**
      * @brief Get the outlier threshold.
      */
-    const double getOutlierThreshold()
+    inline const double getOutlierThreshold()
     {
         return _outlier_threshold;
     }
@@ -195,7 +147,7 @@ public:
     /**
      * @brief Set the outlier threshold.
      */
-    void setOutlierThreshold(const double ot)
+    inline void setOutlierThreshold(const double ot)
     {
         _outlier_threshold = ot;
     }
@@ -203,7 +155,7 @@ public:
     /**
      * @brief Get the outlier threshold.
      */
-    bool getRejectOutliers()
+    inline bool getRejectOutliers()
     {
         return _reject_outliers;
     }
@@ -211,21 +163,15 @@ public:
     /**
      * @brief Set the outlier threshold.
      */
-    void setRejectOutliers(bool ro)
+    inline void setRejectOutliers(bool ro)
     {
         _reject_outliers = ro;
     }
 private:
     double _outlier_threshold;
     bool _reject_outliers;
-
-    Control u; // The control model
-    SystemModel sys; // The system model
-    LocalizationModel om; // The localization measurement model
     
     std::unique_ptr<EKF> _ekf; // the EKF model
 };
-
-}
 
 }

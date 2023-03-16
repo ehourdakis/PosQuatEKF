@@ -12,7 +12,7 @@ option(USE_GNUPLOT "Use the gnuplot library" ON)
 if(USE_GNUPLOT)
   set(pqekf_INCLUDES ${pqekf_INCLUDES} ${CMAKE_SOURCE_DIR}/3rdparty/matplotlibcpp/)
   find_package(Boost COMPONENTS filesystem system iostreams REQUIRED)
-  set(EXTRAS ${EXTRAS} ${Boost_LIBRARIES})
+  set(EXTRAS ${EXTRAS} ${Boost_LIBRARIES} -pthread)
 endif(USE_GNUPLOT)
 
 add_subdirectory(poser)

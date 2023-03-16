@@ -8,24 +8,25 @@ project(PosQuatEKF
 SET (CMAKE_BUILD_TYPE RELEASE CACHE STRING "Build configuration" FORCE)
 
 # Add flags to enable debugging and profiling
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -pg")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 endif()
+
+set(CMAKE_CXX_STANDARD 20 CACHE STRING "The C++ standard to use")
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Inlude Eigen
 find_package(Eigen3 REQUIRED)
 set(EXTRAS ${EXTRAS} Eigen3::Eigen)
 
 set(pqekf_INCLUDES 
-  3rdparty/kalman
-  include/posquatekf)
+  include/pqekf)
 
 set(pqekf_HEADERS
-  include/posquatekf/LocalizationMeasurementModel.hpp
-  include/posquatekf/MotionModel.hpp
-  include/posquatekf/PoseStruct.h
-  include/posquatekf/pqekf.h
+  include/pqekf/pqekf.hpp
+  include/pqekf/ExtendedKalmanFilter.hpp
 )
 
 add_library(pqekf SHARED ${pqekf_HEADERS})

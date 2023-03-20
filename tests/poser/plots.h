@@ -94,7 +94,7 @@ namespace poses
      * @param [in] matrices Vector of positions as Eigen::VectorXd
      * @param [in] targets Vector of targets as Eigen::VectorXd
      */
-    void graph_plot_position(const std::vector<Eigen::VectorXd>& matrices, const std::vector<Eigen::VectorXd>& targets) {
+    void graph_plot_position(const std::vector<cv::Mat>& matrices, const std::vector<cv::Mat>& targets) {
         // Create a new gnuplot object
         Gnuplot gp;
 
@@ -104,33 +104,33 @@ namespace poses
         gp << "set title 'X'\n";
         gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
-            gp << mat(0, 0) << "\n";
+            gp << mat.at<double>(0, 0) << "\n";
         }
         gp << "e\n";
         for (const auto& mat : matrices) {
-            gp << mat(0, 0) << "\n";
+            gp << mat.at<double>(0, 0) << "\n";
         }
         gp << "e\n";
 
         gp << "set title 'Y'\n";
         gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
-            gp << mat(1, 0) << "\n";
+            gp << mat.at<double>(0,1) << "\n";
         }
         gp << "e\n";
         for (const auto& mat : matrices) {
-            gp << mat(1, 0) << "\n";
+            gp << mat.at<double>(0,1) << "\n";
         }
         gp << "e\n";
 
         gp << "set title 'Z'\n";
         gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
-            gp << mat(2, 0) << "\n";
+            gp << mat.at<double>(0,2) << "\n";
         }
         gp << "e\n";
         for (const auto& mat : matrices) {
-            gp << mat(2, 0) << "\n";
+            gp << mat.at<double>(0,2) << "\n";
         }
         gp << "e\n";
 
@@ -144,19 +144,19 @@ namespace poses
      * @param [in] poses A vector of ekf estimates
      * @param [in] fig_number The Matplotlibcpp figure number
      */
-    void plot_ekf(const std::vector<Eigen::Matrix<double, 19, 1> >& poses, Gnuplot &gp) {
+    void plot_ekf(const std::vector<cv::Mat>& poses, Gnuplot &gp) {
         std::vector<double> x, y, z, qx, qy, qz, qw;
 
         // Extract position and orientation data from the Pose struct
         for (const auto& pose : poses) {
-            x.push_back(pose(0));
-            y.push_back(pose(1));
-            z.push_back(pose(2));
+            x.push_back(pose.at<double>(0,0));
+            y.push_back(pose.at<double>(1,0));
+            z.push_back(pose.at<double>(2,0));
 
-            qw.push_back(pose(9));
-            qx.push_back(pose(10));
-            qy.push_back(pose(11));
-            qz.push_back(pose(12));
+            qw.push_back(pose.at<double>(9,0));
+            qx.push_back(pose.at<double>(10,0));
+            qy.push_back(pose.at<double>(11,0));
+            qz.push_back(pose.at<double>(12,0));
         }
 
         gp.send1d(boost::make_tuple(x, y, z));
@@ -272,7 +272,7 @@ namespace poses
 
         gp << "splot ";
         gp << "'-' with linespoints pointtype 7 linecolor rgb 'red' lw 1 ps 0.8 title 'Measurements w outliers'";
-        // gp << ",'-' with linespoints pointtype 7 linecolor rgb 'blue' lw 1 ps 0.8 title 'EKF'";
+        gp << ",'-' with linespoints pointtype 7 linecolor rgb 'blue' lw 1 ps 0.8 title 'EKF'";
         // gp << ", '-' with lines lw 1.0 linecolor rgb 'blue' title 'Process Covariance'";
         // plot transparent line. In #90D13030, first two digits (90) are transparency, remaining RGB code
         // gp << ", '-' with lines lw 0.5 lc rgb \"#95FF6666\" title 'Measurement Covariance'";
@@ -282,7 +282,7 @@ namespace poses
         std::vector<Pose>::const_iterator last = targets.begin() + index;
         plot_trajectory(std::vector<Pose>(first, last), gp);
         
-        // plot_ekf(states, gp);
+        plot_ekf(states, gp);
 
         // plot_covariance(pqekf->getEKF()->getStateCovariance().topLeftCorner<3, 3>(),
         //                 pqekf->getState().head<3>(), gp, 10);

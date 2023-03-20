@@ -128,15 +128,15 @@ int main(int argc, char** argv)
     std::vector<double> values;
 
     for(unsigned i = 0; i < ekf_states.size(); i++) {
-        // orientations.push_back(ekf_states[i].rowRange(9, 13).colRange(0, 1));
-        // otargets.push_back(poses::quaternionToVectorXd(measurements[i].orientation));
+        orientations.push_back(ekf_states[i].rowRange(9, 13).colRange(0, 1));
+        otargets.push_back(poses::quaternionToVectorXd(measurements[i].orientation));
 
-        // positions.push_back(ekf_states[i].rowRange(0, 3).colRange(0, 1).t());
-        // ptargets.push_back(measurements[i].position);
+        positions.push_back(ekf_states[i].rowRange(0, 3).colRange(0, 1).t());
+        ptargets.push_back(cv::Mat(measurements[i].position));
     }
 
     // poses::graph_plot_quaternion(orientations, otargets);
-    // poses::graph_plot_position(positions, ptargets);
+    poses::graph_plot_position(positions, ptargets);
 #endif
 
     return 0;

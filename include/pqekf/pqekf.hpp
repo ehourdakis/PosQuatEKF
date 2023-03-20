@@ -41,9 +41,9 @@ public:
     {
         init_state(position, orientation);
 
-        cv::Mat init_state_covariance = cv::Mat::zeros(19, 19, CV_64F) * state_covariance;
-        cv::Mat init_process_covariance = cv::Mat::zeros(19, 19, CV_64F) * process_covariance;
-        cv::Mat init_measurement_covariance = cv::Mat::zeros(7, 7, CV_64F) * measurement_covariance;
+        cv::Mat init_state_covariance = cv::Mat::eye(19, 19, CV_64F) * state_covariance;
+        cv::Mat init_process_covariance = cv::Mat::eye(19, 19, CV_64F) * process_covariance;
+        cv::Mat init_measurement_covariance = cv::Mat::eye(7, 7, CV_64F) * measurement_covariance;
 
         _ekf->setStateCovariance(init_state_covariance);
         _ekf->setProcessCovariance(init_process_covariance);
@@ -59,7 +59,7 @@ public:
     }
 
     /**
-     * @brief Run the prediction of the EKF for a number of steps.
+     * @brief Predict the state and covariance using the process model
      *
      * This will compute the next state of the EKF based on its previous
      * state estimate and the state model transition. 
@@ -70,6 +70,7 @@ public:
     {
         State ret;
         
+        // predict the states and covariance
         ret = _ekf->predict(dt);
         
         return ret;

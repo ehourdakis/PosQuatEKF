@@ -10,3 +10,5 @@
 
 # Exclude all pycache files
 **/__pycache__/
+
+gmon.out

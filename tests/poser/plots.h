@@ -16,13 +16,13 @@ namespace poses
      * @param [in] quat The quaternion to be converted
      * @return The quaternion as an Eigen::VectorXd.
      */
-    Eigen::VectorXd quaternionToVectorXd(const Eigen::Quaterniond& quat) {
-        Eigen::VectorXd quatVec(4);
+    cv::Mat quaternionToVectorXd(const Eigen::Quaterniond& quat) {
+        cv::Mat quatVec(4, 1, CV_64F);
 
-        quatVec(0) = quat.w();
-        quatVec(1) = quat.x();
-        quatVec(2) = quat.y();
-        quatVec(3) = quat.z();
+        quatVec.at<double>(0,0) = quat.w();
+        quatVec.at<double>(1,0) = quat.x();
+        quatVec.at<double>(2,0) = quat.y();
+        quatVec.at<double>(3,0) = quat.z();
 
         return quatVec;
     }
@@ -147,8 +147,6 @@ namespace poses
     void plot_ekf(const std::vector<Eigen::Matrix<double, 19, 1> >& poses, Gnuplot &gp) {
         std::vector<double> x, y, z, qx, qy, qz, qw;
 
-        auto skip = 0; // skip mod
-
         // Extract position and orientation data from the Pose struct
         for (const auto& pose : poses) {
             x.push_back(pose(0));
@@ -173,13 +171,11 @@ namespace poses
     void plot_trajectory(const std::vector<poses::Pose>& poses, Gnuplot &gp) {
         std::vector<double> x, y, z, qx, qy, qz, qw;
 
-        auto skip = 0;
-
         // Extract position and orientation data from the Pose struct
         for (const auto& pose : poses) {
-            x.push_back(pose.position.x());
-            y.push_back(pose.position.y());
-            z.push_back(pose.position.z());
+            x.push_back(pose.position[0]);
+            y.push_back(pose.position[1]);
+            z.push_back(pose.position[2]);
 
             qw.push_back(pose.orientation.w());
             qx.push_back(pose.orientation.x());
@@ -202,7 +198,7 @@ namespace poses
         const Eigen::MatrixXd& eigenvectors = eig.eigenvectors();
 
         // Compute length of eigenvalues for scaling the eigenvectors
-        const double eigenvalues_length = eigenvalues.maxCoeff() - eigenvalues.minCoeff();
+        // const double eigenvalues_length = eigenvalues.maxCoeff() - eigenvalues.minCoeff();
 
         // Compute x, y, and z coordinates of points on the ellipsoid
         std::vector<double> xx, yy, zz;
@@ -245,23 +241,23 @@ namespace poses
     {
         if(index == 1)
         {
-            auto x_comp = [](const poses::Pose& a, const poses::Pose& b) { return a.position.x() < b.position.x(); };
-            auto y_comp = [](const poses::Pose& a, const poses::Pose& b) { return a.position.y() < b.position.y(); };
-            auto z_comp = [](const poses::Pose& a, const poses::Pose& b) { return a.position.z() < b.position.z(); };
+            auto x_comp = [](const poses::Pose& a, const poses::Pose& b) { return a.position[0] < b.position[0]; };
+            auto y_comp = [](const poses::Pose& a, const poses::Pose& b) { return a.position[1] < b.position[1]; };
+            auto z_comp = [](const poses::Pose& a, const poses::Pose& b) { return a.position[2] < b.position[2]; };
 
             auto minmax_x = std::minmax_element(targets.begin(), targets.end(), x_comp);
             auto minmax_y = std::minmax_element(targets.begin(), targets.end(), y_comp);
             auto minmax_z = std::minmax_element(targets.begin(), targets.end(), z_comp);
 
             // Access the min/max values
-            double min_x = minmax_x.first->position.x();
-            double max_x = minmax_x.second->position.x();
+            double min_x = minmax_x.first->position[0];
+            double max_x = minmax_x.second->position[0];
 
-            double min_y = minmax_y.first->position.y();
-            double max_y = minmax_y.second->position.y();
+            double min_y = minmax_y.first->position[1];
+            double max_y = minmax_y.second->position[1];
 
-            double min_z = minmax_z.first->position.z() - 2.0;
-            double max_z = minmax_z.second->position.z() + 2.0;
+            double min_z = minmax_z.first->position[2] - 2.0;
+            double max_z = minmax_z.second->position[2] + 2.0;
 
             gp << "set xrange [" << min_x << ":" << max_x << "]" << std::endl;
             gp << "set yrange [" << min_y << ":" << max_y << "]" << std::endl;
@@ -276,22 +272,22 @@ namespace poses
 
         gp << "splot ";
         gp << "'-' with linespoints pointtype 7 linecolor rgb 'red' lw 1 ps 0.8 title 'Measurements w outliers'";
-        gp << ",'-' with linespoints pointtype 7 linecolor rgb 'blue' lw 1 ps 0.8 title 'EKF'";
-        gp << ", '-' with lines lw 1.0 linecolor rgb 'blue' title 'Process Covariance'";
+        // gp << ",'-' with linespoints pointtype 7 linecolor rgb 'blue' lw 1 ps 0.8 title 'EKF'";
+        // gp << ", '-' with lines lw 1.0 linecolor rgb 'blue' title 'Process Covariance'";
         // plot transparent line. In #90D13030, first two digits (90) are transparency, remaining RGB code
-        gp << ", '-' with lines lw 0.5 lc rgb \"#95FF6666\" title 'Measurement Covariance'";
+        // gp << ", '-' with lines lw 0.5 lc rgb \"#95FF6666\" title 'Measurement Covariance'";
         gp << std::endl;
 
         std::vector<Pose>::const_iterator first = targets.begin();
         std::vector<Pose>::const_iterator last = targets.begin() + index;
         plot_trajectory(std::vector<Pose>(first, last), gp);
         
-        plot_ekf(states, gp);
+        // plot_ekf(states, gp);
 
-        plot_covariance(pqekf->getEKF()->getStateCovariance().topLeftCorner<3, 3>(),
-                        pqekf->getState().head<3>(), gp, 10);
-        plot_covariance(pqekf->getEKF()->getInnovationCovariance().topLeftCorner<3, 3>(), 
-                        targets[index].position, gp, 10);
+        // plot_covariance(pqekf->getEKF()->getStateCovariance().topLeftCorner<3, 3>(),
+        //                 pqekf->getState().head<3>(), gp, 10);
+        // plot_covariance(pqekf->getEKF()->getInnovationCovariance().topLeftCorner<3, 3>(), 
+        //                 targets[index].position, gp, 10);
     }
 
 }

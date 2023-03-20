@@ -10,6 +10,8 @@
 #include <Eigen/Dense>
 #include <cmath>
 
+#include <opencv2/core/core.hpp>
+
 namespace poses
 {
     /**
@@ -22,15 +24,17 @@ namespace poses
         
         Pose() = default;
 
-        Pose(Eigen::Vector3d position_, Eigen::Quaterniond orientation_, double dt_)
+        Pose(cv::Mat position_, Eigen::Quaterniond orientation_, double dt_)
         : position(position_), orientation(orientation_), timestamp(dt_) {}
 
         void cout() {
-            std::cout << std::fixed << timestamp << " " << position.transpose() << " " 
-                << orientation.w() << " " << orientation.vec().transpose() << std::endl;
+            std::cout << "Position: " << position << std::endl;
+            std::cout << "Orientation: " << orientation.coeffs() << std::endl;
+            std::cout << "Timestamp: " << timestamp << std::endl;
         }
+
     public:
-        Eigen::Vector3d position = Eigen::Vector3d(0,0,0);
+        cv::Vec3d position = cv::Vec3d();
         Eigen::Quaterniond orientation = Eigen::Quaterniond();
         long long timestamp;
     };
@@ -64,7 +68,7 @@ namespace poses
                     if (i == 0) {
                         pose.timestamp = std::stoll(field);
                     } else if (i >= 4 && i < 7 ) {
-                        pose.position(i - 4) = std::stod(field);
+                        pose.position[i-4] = std::stod(field);
                     } else if (i >= 7 && i <= 10) {
                         pose.orientation.coeffs()(i - 7) = std::stod(field);
                     }
@@ -118,7 +122,8 @@ namespace poses
         std::vector<int> pose_start_idxs = {0};
         for (size_t i = 1; i < poses.size(); i++) 
         {
-            double position_change = (poses[i].position - poses[i-1].position).norm();
+            cv::Vec3d position_difference = poses[i].position - poses[i-1].position;
+            double position_change = cv::norm(position_difference, cv::NORM_L2); //(poses[i].position - poses[i-1].position).norm();
             if (position_change > 0.0) 
             {
                 pose_start_idxs.push_back(i);
@@ -153,7 +158,7 @@ namespace poses
             for (unsigned j = 0; j < interp_times.size(); j++) 
             {
                 double t = interp_times[j];
-                Eigen::Vector3d interp_pos;
+                cv::Mat interp_pos;
                 Eigen::Quaterniond interp_quat;
                 if (j == 0) 
                 {
@@ -197,7 +202,7 @@ namespace poses
         outfile << "timestamp,x,y,z,qw,qx,qy,qz\n";
         for (const auto& pose : interp_poses) {
             outfile << std::fixed << std::setprecision(0) << pose.timestamp << "," << std::setprecision(5) 
-                    << pose.position.x() << "," << pose.position.y() << "," << pose.position.z() << ","
+                    << pose.position[0] << "," << pose.position[1] << "," << pose.position[2] << ","
                     << pose.orientation.w() << "," << pose.orientation.x() << ","
                     << pose.orientation.y() << "," << pose.orientation.z() << "\n";
         }

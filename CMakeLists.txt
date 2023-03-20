@@ -5,7 +5,7 @@ project(PosQuatEKF
         DESCRIPTION "An EKF tracking the linearized position and orientation of a robot."
         LANGUAGES CXX)
 
-SET (CMAKE_BUILD_TYPE RELEASE CACHE STRING "Build configuration" FORCE)
+SET (CMAKE_BUILD_TYPE DEBUG CACHE STRING "Build configuration" FORCE)
 
 # Add flags to enable debugging and profiling
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
@@ -21,8 +21,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(Eigen3 REQUIRED)
 set(EXTRAS ${EXTRAS} Eigen3::Eigen)
 
+find_package(OpenCV 4.6.0 CONFIG REQUIRED PATHS "/files/Projects/Libraries/opencv/install/lib/cmake/opencv4" NO_DEFAULT_PATH)
+set(EXTRAS ${EXTRAS} ${OpenCV_LIBS})
+
 set(pqekf_INCLUDES 
-  include/pqekf)
+${OpenCV_INCLUDE_DIRS}
+include/pqekf)
 
 set(pqekf_HEADERS
   include/pqekf/pqekf.hpp

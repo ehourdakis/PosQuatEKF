@@ -1,5 +1,8 @@
 #include "ExtendedKalmanFilter.hpp"
 
+#include <opencv2/core.hpp>
+#include <opencv2/core/core.hpp>
+
 namespace ekf
 {
 
@@ -15,8 +18,6 @@ namespace ekf
 template<class T>
 class PoseQuaternionEKF {
 public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    
     using EKF = ExtendedKalmanFilter<T>;
     using State = EKF::State;
     using Measurement = EKF::Measurement;
@@ -27,7 +28,7 @@ public:
      * @param position The initial system position to use for initialization
      * @param orientation The initial system orientation to use for initialization
      */
-    PoseQuaternionEKF(const Eigen::Vector3d& position = Eigen::Vector3d::Zero(),
+    PoseQuaternionEKF(const cv::Vec3d& position = cv::Vec3d(0,0,0),
                       const Eigen::Quaterniond& orientation = Eigen::Quaterniond::Identity(),
                       const double state_covariance = 1e-5,
                       const double process_covariance = 1e-5,
@@ -40,9 +41,13 @@ public:
     {
         init_state(position, orientation);
 
-        _ekf->setStateCovariance(EKF::Square::Identity()*state_covariance);
-        _ekf->setProcessCovariance(EKF::Square::Identity()*process_covariance);
-        _ekf->setMeasurementCovariance(EKF::MCovariance::Identity()*measurement_covariance);
+        cv::Mat init_state_covariance = cv::Mat::zeros(19, 19, CV_64F) * state_covariance;
+        cv::Mat init_process_covariance = cv::Mat::zeros(19, 19, CV_64F) * process_covariance;
+        cv::Mat init_measurement_covariance = cv::Mat::zeros(7, 7, CV_64F) * measurement_covariance;
+
+        _ekf->setStateCovariance(init_state_covariance);
+        _ekf->setProcessCovariance(init_process_covariance);
+        _ekf->setMeasurementCovariance(init_measurement_covariance);
     }
     /**
      * @brief Destructor. 
@@ -79,16 +84,17 @@ public:
      * @param position The position component of the measurement.
      * @param orientation The orientation component represented as a normalized quaternion.
      */
-    const State update(const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation)
+    const State update(const cv::Vec3d& position, const Eigen::Quaterniond& orientation)
     {
-        Measurement measurement;
-        measurement(0) = position(0);
-        measurement(1) = position(1);
-        measurement(2) = position(2);
-        measurement(3) = orientation.w();
-        measurement(4) = orientation.x();
-        measurement(5) = orientation.y();
-        measurement(6) = orientation.z();
+        cv::Mat measurement = cv::Mat::zeros(7, 1, CV_64F);
+
+        measurement.at<double>(0,0) = position[0];
+        measurement.at<double>(1,0) = position[1];
+        measurement.at<double>(2,0) = position[2];
+        measurement.at<double>(3,0) = orientation.w();
+        measurement.at<double>(4,0) = orientation.x();
+        measurement.at<double>(5,0) = orientation.y();
+        measurement.at<double>(6,0) = orientation.z();
 
         auto x_ekf = _ekf->update(measurement, (_reject_outliers)?_outlier_threshold:-1.0); 
 
@@ -111,19 +117,18 @@ public:
      * @param position The initial system position to use for initialization
      * @param orientation The initial system orientation to use for initialization
      */
-    void init_state(const Eigen::Vector3d& position = Eigen::Vector3d::Zero(),
+    void init_state(const cv::Vec3d& position = cv::Vec3d(0,0,0),
         const Eigen::Quaterniond& orientation = Eigen::Quaterniond::Identity())
     {
-        State x;
-        x.setZero();
+        cv::Mat x = cv::Mat::zeros(19, 1, CV_64F);
 
-        x(0)= position(0);
-        x(1)= position(1);
-        x(2)= position(2);
-        x(9) = orientation.w();
-        x(10) = orientation.x();
-        x(11) = orientation.y();
-        x(12) = orientation.z();
+        x.at<double>(0,0)  = position[0];
+        x.at<double>(1,0)  = position[1];
+        x.at<double>(2,0)  = position[2];
+        x.at<double>(9,0)  = orientation.w();
+        x.at<double>(10,0) = orientation.x();
+        x.at<double>(11,0) = orientation.y();
+        x.at<double>(12,0) = orientation.z();
 
         _ekf->setState(x);
     }

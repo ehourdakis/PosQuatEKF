@@ -55,7 +55,7 @@ int main(int argc, char** argv)
     // load and interpolate data
     // bool loaded = poses::load_and_interpolate_poses("data/poser.csv", measurements);
     // bool loaded = poses::read_poses_from_csv("data/slam.csv", measurements);
-    bool loaded = poses::read_poses_from_csv("data/outliers.csv", measurements);
+    bool loaded = poses::read_poses_from_csv("/files/Projects/UnderDev/PosQuatEKF/data/outliers.csv", measurements);
     if(!loaded) {
         std::cerr << "Could not load .csv file\n";
         return 0;
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 
     // initialize pqekf
     std::unique_ptr<PoseQuaternionEKFd> pqekf(new PoseQuaternionEKFd(
-        measurements[0].position,  // Initial position
+        cv::Mat(measurements[0].position),  // Initial position
         measurements[0].orientation, // Initial orientation
         1e-2, // Scale initial state covariance
         1e-2, // Scale process covariance
@@ -104,8 +104,8 @@ int main(int argc, char** argv)
         std::cout << " Timestamp: " << std::fixed << std::setprecision(0) << measurements[i].timestamp 
             << std::setprecision(8) << " dt: " << dt << " Step: " << i 
             << std::endl << std::setprecision(4) 
-            << " Position: " << pqekf->getState().block<3,1>(0,0).transpose() << std::endl
-            << "Orientation: " << pqekf->getState().block<4,1>(9,0).transpose() << std::endl;
+            << " Position: " << pqekf->getState().rowRange(0, 3).colRange(0, 1).t() << std::endl
+            << "Orientation: " << pqekf->getState().rowRange(9, 13).colRange(0, 1).t() << std::endl;
 
         // Implement pause on space
         if (kbhit()) {
@@ -123,22 +123,20 @@ int main(int argc, char** argv)
     
 #if(USE_GNUPLOT)
     // Plot graphs
-    std::vector<Eigen::VectorXd> orientations, otargets;
-    std::vector<Eigen::VectorXd> positions, ptargets;
+    std::vector<cv::Mat> orientations, otargets;
+    std::vector<cv::Mat> positions, ptargets;
     std::vector<double> values;
 
     for(unsigned i = 0; i < ekf_states.size(); i++) {
-        values.push_back(ekf_states[i](18));
-        
-        orientations.push_back(ekf_states[i].block<4,1>(9,0));
-        otargets.push_back(poses::quaternionToVectorXd(measurements[i].orientation));
+        // orientations.push_back(ekf_states[i].rowRange(9, 13).colRange(0, 1));
+        // otargets.push_back(poses::quaternionToVectorXd(measurements[i].orientation));
 
-        positions.push_back(ekf_states[i].block<3,1>(0,0));
-        ptargets.push_back(measurements[i].position);
+        // positions.push_back(ekf_states[i].rowRange(0, 3).colRange(0, 1).t());
+        // ptargets.push_back(measurements[i].position);
     }
 
-    poses::graph_plot_quaternion(orientations, otargets);
-    poses::graph_plot_position(positions, ptargets);
+    // poses::graph_plot_quaternion(orientations, otargets);
+    // poses::graph_plot_position(positions, ptargets);
 #endif
 
     return 0;

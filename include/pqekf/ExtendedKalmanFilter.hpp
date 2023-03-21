@@ -9,35 +9,38 @@ namespace ekf {
     /**
      * @brief Extended Kalman Filter (EKF)
      *
-     * @param BaseType The base type for variables
      */
-    template<class BaseType>
     class ExtendedKalmanFilter
     {
     public:
-        using State = cv::Mat;//<BaseType, 19, 1>;
-        using Measurement = cv::Mat;//<BaseType, 7, 1>;
-        using Square = cv::Mat;//<BaseType, 19, 19>;
-        using MCovariance = cv::Mat;//<BaseType, 7, 7>;
+        using State = cv::Mat;
+        using Measurement = cv::Mat;
+        using Square = cv::Mat;
+        using MCovariance = cv::Mat;
 
         /**
-         * @brief Default constructor
+         * @brief Default constructor. Initializes the filter with default values.
          */
         ExtendedKalmanFilter()
         {
+            // Setup state 
             x = cv::Mat::zeros(19, 1, CV_64F);
 
-            // Setup state and covariance
+            // Setup covariance
             P = cv::Mat::eye(19, 19, CV_64F);
 
+            // Setup process noise
             W = cv::Mat::eye(19, 19, CV_64F);
             PCov = cv::Mat::eye(19, 19, CV_64F);
 
+            // Setup measurement noise
             V = cv::Mat::eye(7, 7, CV_64F);
             MCov = cv::Mat::eye(7, 7, CV_64F);
 
+            // Setup H matrix
             H = cv::Mat::zeros(7,19, CV_64F);
 
+            // Setup identity matrix
             IC = cv::Mat::eye(7, 7, CV_64F);
         }
 
@@ -50,6 +53,7 @@ namespace ekf {
          */
         const State& predict( const double dt )
         {
+            // update state jacobians
             updateStateJacobians( x, dt );
             
             // predict state
@@ -70,15 +74,18 @@ namespace ekf {
          */
         const State& update( const Measurement& z, double outlier_threshold )
         {
+            // update measurement jacobians
             updateMeasurementJacobians( x );
             
             // compute innovation covariance
             IC = ( H * P * H.t() ) + ( V * MCov * V.t() );
         
+            // compute mahalanobis distance
             Measurement spred = h(x);
             auto mah = mahalanobis_position(z, spred, IC);
             Measurement diff = (z - spred);
             
+            // check for outliers
             if(outlier_threshold>0.0 && mah>outlier_threshold) {
                 // std::cout << "Mah: " << mah << "\nDiff: " << diff.t() << std::endl;
                 std::cout << "Outlier Detected\n";
@@ -87,7 +94,7 @@ namespace ekf {
             }
 
             // compute kalman gain
-            cv::Mat K = P * H.t() * IC.inv(); //<BaseType, 19, 7> 
+            cv::Mat K = P * H.t() * IC.inv(); //<double, 19, 7> 
 
             // Update state using computed kalman gain and innovation
             x += K * ( z - spred );
@@ -184,7 +191,7 @@ namespace ekf {
         void updateStateJacobians( const State &x, const double dt )
         {
             // normalize the quaternion before hand
-            cv::Quat<BaseType> q(x.at<BaseType>(9,0), x.at<BaseType>(10,0), x.at<BaseType>(11,0), x.at<BaseType>(12,0));
+            cv::Quat<double> q(x.at<double>(9,0), x.at<double>(10,0), x.at<double>(11,0), x.at<double>(12,0));
             try {
                 q.normalize();
             } catch (const std::exception& e) {
@@ -192,64 +199,64 @@ namespace ekf {
                 throw;
             }
 
-            BaseType sqw  = q[0];
-            BaseType sqx  = q[1];
-            BaseType sqy  = q[2];
-            BaseType sqz  = q[3];
-            BaseType swx  = x.at<BaseType>(13,0);
-            BaseType swy  = x.at<BaseType>(14,0);
-            BaseType swz  = x.at<BaseType>(15,0);
+            double sqw  = q[0];
+            double sqx  = q[1];
+            double sqy  = q[2];
+            double sqz  = q[3];
+            double swx  = x.at<double>(13,0);
+            double swy  = x.at<double>(14,0);
+            double swz  = x.at<double>(15,0);
 
             F = cv::Mat::eye(19, 19, CV_64F);
 
-            F.at<BaseType>(0, 3) = dt;
-            F.at<BaseType>(1, 4) = dt;
-            F.at<BaseType>(2, 5) = dt;
+            F.at<double>(0, 3) = dt;
+            F.at<double>(1, 4) = dt;
+            F.at<double>(2, 5) = dt;
 
-            F.at<BaseType>(0, 6) = 0.5 * dt * dt;
-            F.at<BaseType>(1, 7) = 0.5 * dt * dt;
-            F.at<BaseType>(2, 8) = 0.5 * dt * dt;
+            F.at<double>(0, 6) = 0.5 * dt * dt;
+            F.at<double>(1, 7) = 0.5 * dt * dt;
+            F.at<double>(2, 8) = 0.5 * dt * dt;
 
-            F.at<BaseType>(3, 6) = dt;
-            F.at<BaseType>(4, 7) = dt;
-            F.at<BaseType>(5, 8) = dt;
+            F.at<double>(3, 6) = dt;
+            F.at<double>(4, 7) = dt;
+            F.at<double>(5, 8) = dt;
 
-            F.at<BaseType>(9, 9) = 1.0;
-            F.at<BaseType>(9, 10) = -0.5 * dt * swx;
-            F.at<BaseType>(9, 11) = -0.5 * dt * swy;
-            F.at<BaseType>(9, 12) = -0.5 * dt * swz;
-            F.at<BaseType>(9, 13) = -0.5 * dt * sqx;
-            F.at<BaseType>(9, 14) = -0.5 * dt * sqy;
-            F.at<BaseType>(9, 15) = -0.5 * dt * sqz;
+            F.at<double>(9, 9) = 1.0;
+            F.at<double>(9, 10) = -0.5 * dt * swx;
+            F.at<double>(9, 11) = -0.5 * dt * swy;
+            F.at<double>(9, 12) = -0.5 * dt * swz;
+            F.at<double>(9, 13) = -0.5 * dt * sqx;
+            F.at<double>(9, 14) = -0.5 * dt * sqy;
+            F.at<double>(9, 15) = -0.5 * dt * sqz;
 
-            F.at<BaseType>(10, 9) = 0.5 * dt * swx;
-            F.at<BaseType>(10, 10) = 1.0;
-            F.at<BaseType>(10, 11) = 0.5 * dt * swz;
-            F.at<BaseType>(10, 12) = -0.5 * dt * swy;
-            F.at<BaseType>(10, 13) = 0.5 * dt * sqw;
-            F.at<BaseType>(10, 14) = -0.5 * dt * sqz;
-            F.at<BaseType>(10, 15) = 0.5 * dt * sqy;
+            F.at<double>(10, 9) = 0.5 * dt * swx;
+            F.at<double>(10, 10) = 1.0;
+            F.at<double>(10, 11) = 0.5 * dt * swz;
+            F.at<double>(10, 12) = -0.5 * dt * swy;
+            F.at<double>(10, 13) = 0.5 * dt * sqw;
+            F.at<double>(10, 14) = -0.5 * dt * sqz;
+            F.at<double>(10, 15) = 0.5 * dt * sqy;
 
-            F.at<BaseType>(11, 9) = 0.5 * dt * swy;
-            F.at<BaseType>(11, 10) = -0.5 * dt * swz;
-            F.at<BaseType>(11, 11) = 1.0;
-            F.at<BaseType>(11, 12) = 0.5 * dt * swx;
-            F.at<BaseType>(11, 13) = 0.5 * dt * sqz;
-            F.at<BaseType>(11, 14) = 0.5 * dt * sqw;
-            F.at<BaseType>(11, 15) = -0.5 * dt * sqx;
+            F.at<double>(11, 9) = 0.5 * dt * swy;
+            F.at<double>(11, 10) = -0.5 * dt * swz;
+            F.at<double>(11, 11) = 1.0;
+            F.at<double>(11, 12) = 0.5 * dt * swx;
+            F.at<double>(11, 13) = 0.5 * dt * sqz;
+            F.at<double>(11, 14) = 0.5 * dt * sqw;
+            F.at<double>(11, 15) = -0.5 * dt * sqx;
 
-            F.at<BaseType>(12, 9) = 0.5 * dt * swz;
-            F.at<BaseType>(12, 10) = 0.5 * dt * swy;
-            F.at<BaseType>(12, 11) = -0.5 * dt * swx;
-            F.at<BaseType>(12, 12) = 1.0;
-            F.at<BaseType>(12, 13) = -0.5 * dt * sqy;
-            F.at<BaseType>(12, 14) = 0.5 * dt * sqx;
-            F.at<BaseType>(12, 15) = 0.5 * dt * sqw;
+            F.at<double>(12, 9) = 0.5 * dt * swz;
+            F.at<double>(12, 10) = 0.5 * dt * swy;
+            F.at<double>(12, 11) = -0.5 * dt * swx;
+            F.at<double>(12, 12) = 1.0;
+            F.at<double>(12, 13) = -0.5 * dt * sqy;
+            F.at<double>(12, 14) = 0.5 * dt * sqx;
+            F.at<double>(12, 15) = 0.5 * dt * sqw;
 
             // Angular velocity Jacobian
-            F.at<BaseType>(13, 16) = dt;
-            F.at<BaseType>(14, 17) = dt;
-            F.at<BaseType>(15, 18) = dt;
+            F.at<double>(13, 16) = dt;
+            F.at<double>(14, 17) = dt;
+            F.at<double>(15, 18) = dt;
         }
 
         /**
@@ -266,53 +273,53 @@ namespace ekf {
          */
         State f(const State& x, const double dt) const
         {
-            const BaseType sx    = x.at<BaseType>(0,0);
-            const BaseType sy    = x.at<BaseType>(1,0);
-            const BaseType sz    = x.at<BaseType>(2,0);
-            const BaseType svx   = x.at<BaseType>(3,0);
-            const BaseType svy   = x.at<BaseType>(4,0);
-            const BaseType svz   = x.at<BaseType>(5,0);
-            const BaseType sax   = x.at<BaseType>(6,0);
-            const BaseType say   = x.at<BaseType>(7,0);
-            const BaseType saz   = x.at<BaseType>(8,0);
-            const BaseType sqw   = x.at<BaseType>(9,0);
-            const BaseType sqx   = x.at<BaseType>(10,0);
-            const BaseType sqy   = x.at<BaseType>(11,0);
-            const BaseType sqz   = x.at<BaseType>(12,0);
-            const BaseType swx   = x.at<BaseType>(13,0);
-            const BaseType swy   = x.at<BaseType>(14,0);
-            const BaseType swz   = x.at<BaseType>(15,0);
-            const BaseType sdwx  = x.at<BaseType>(16,0);
-            const BaseType sdwy  = x.at<BaseType>(17,0);
-            const BaseType sdwz  = x.at<BaseType>(18,0);
+            const double sx    = x.at<double>(0,0);
+            const double sy    = x.at<double>(1,0);
+            const double sz    = x.at<double>(2,0);
+            const double svx   = x.at<double>(3,0);
+            const double svy   = x.at<double>(4,0);
+            const double svz   = x.at<double>(5,0);
+            const double sax   = x.at<double>(6,0);
+            const double say   = x.at<double>(7,0);
+            const double saz   = x.at<double>(8,0);
+            const double sqw   = x.at<double>(9,0);
+            const double sqx   = x.at<double>(10,0);
+            const double sqy   = x.at<double>(11,0);
+            const double sqz   = x.at<double>(12,0);
+            const double swx   = x.at<double>(13,0);
+            const double swy   = x.at<double>(14,0);
+            const double swz   = x.at<double>(15,0);
+            const double sdwx  = x.at<double>(16,0);
+            const double sdwy  = x.at<double>(17,0);
+            const double sdwz  = x.at<double>(18,0);
 
             //! Predicted state vector after transition
             State x_;
             x_ = cv::Mat::zeros(19, 1, CV_64F);
             
             // evolution of state
-            x_.at<BaseType>(0,0)  = sx + svx * dt + 0.5 * sax * dt * dt;
-            x_.at<BaseType>(1,0)  = sy + svy * dt + 0.5 * say * dt * dt;
-            x_.at<BaseType>(2,0)  = sz + svz * dt + 0.5 * saz * dt * dt;
-            x_.at<BaseType>(3,0)  = svx + sax * dt;
-            x_.at<BaseType>(4,0)  = svy + say * dt;
-            x_.at<BaseType>(5,0)  = svz + saz * dt;
-            x_.at<BaseType>(6,0)  = sax;
-            x_.at<BaseType>(7,0)  = say;
-            x_.at<BaseType>(8,0)  = saz;
-            x_.at<BaseType>(9,0)  = sqw - 0.5 * dt * (swx * sqx + swy * sqy + swz * sqz);
-            x_.at<BaseType>(10,0) = sqx + 0.5 * dt * (swx * sqw - swy * sqz + swz * sqy);
-            x_.at<BaseType>(11,0) = sqy + 0.5 * dt * (swx * sqz + swy * sqw - swz * sqx);
-            x_.at<BaseType>(12,0) = sqz - 0.5 * dt * (swx * sqy - swy * sqx - swz * sqw);
-            x_.at<BaseType>(13,0) = swx + sdwx * dt;
-            x_.at<BaseType>(14,0) = swy + sdwy * dt;
-            x_.at<BaseType>(15,0) = swz + sdwz * dt;
-            x_.at<BaseType>(16,0) = sdwx;
-            x_.at<BaseType>(17,0) = sdwy;
-            x_.at<BaseType>(18,0) = sdwz;
+            x_.at<double>(0,0)  = sx + svx * dt + 0.5 * sax * dt * dt;
+            x_.at<double>(1,0)  = sy + svy * dt + 0.5 * say * dt * dt;
+            x_.at<double>(2,0)  = sz + svz * dt + 0.5 * saz * dt * dt;
+            x_.at<double>(3,0)  = svx + sax * dt;
+            x_.at<double>(4,0)  = svy + say * dt;
+            x_.at<double>(5,0)  = svz + saz * dt;
+            x_.at<double>(6,0)  = sax;
+            x_.at<double>(7,0)  = say;
+            x_.at<double>(8,0)  = saz;
+            x_.at<double>(9,0)  = sqw - 0.5 * dt * (swx * sqx + swy * sqy + swz * sqz);
+            x_.at<double>(10,0) = sqx + 0.5 * dt * (swx * sqw - swy * sqz + swz * sqy);
+            x_.at<double>(11,0) = sqy + 0.5 * dt * (swx * sqz + swy * sqw - swz * sqx);
+            x_.at<double>(12,0) = sqz - 0.5 * dt * (swx * sqy - swy * sqx - swz * sqw);
+            x_.at<double>(13,0) = swx + sdwx * dt;
+            x_.at<double>(14,0) = swy + sdwy * dt;
+            x_.at<double>(15,0) = swz + sdwz * dt;
+            x_.at<double>(16,0) = sdwx;
+            x_.at<double>(17,0) = sdwy;
+            x_.at<double>(18,0) = sdwz;
 
             // normalize the quaternion after computing state transition
-            cv::Quat<BaseType> q(x_.at<BaseType>(9,0), x_.at<BaseType>(10,0), x_.at<BaseType>(11,0), x_.at<BaseType>(12,0));
+            cv::Quat<double> q(x_.at<double>(9,0), x_.at<double>(10,0), x_.at<double>(11,0), x_.at<double>(12,0));
             try {
                 q.normalize();
             } catch (const std::exception& e) {
@@ -320,10 +327,10 @@ namespace ekf {
                 throw;
             }
 
-            x_.at<BaseType>(9,0)  = q[0];
-            x_.at<BaseType>(10,0) = q[1];
-            x_.at<BaseType>(11,0) = q[2];
-            x_.at<BaseType>(12,0) = q[3];
+            x_.at<double>(9,0)  = q[0];
+            x_.at<double>(10,0) = q[1];
+            x_.at<double>(11,0) = q[2];
+            x_.at<double>(12,0) = q[3];
 
             return x_;
         }
@@ -342,7 +349,7 @@ namespace ekf {
             cv::Mat inv_cov = cov.inv();
             cv::Mat mah = diff.t() * cov * diff;
 
-            auto squared_distance = mah.at<BaseType>(0,0);
+            auto squared_distance = mah.at<double>(0,0);
             double md = std::sqrt(squared_distance);
             
             return md;
@@ -359,11 +366,11 @@ namespace ekf {
                                     const cv::Mat& mean,
                                     const cv::Mat& cov) {
             // Extract the position components of the measurement and the state mean
-            cv::Mat x_pos = x.rowRange(0,3).clone();//head<3>();
-            cv::Mat mean_pos = mean.rowRange(0,3).clone();//.head<3>();
+            cv::Mat x_pos = x.rowRange(0,3).clone();
+            cv::Mat mean_pos = mean.rowRange(0,3).clone();
 
             // Extract the submatrix of the covariance matrix corresponding to position
-            cv::Mat cov_pos = cov(cv::Range(0, 3), cv::Range(0, 3)).clone();//cov.topLeftCorner<3, 3>();
+            cv::Mat cov_pos = cov(cv::Range(0, 3), cv::Range(0, 3)).clone();
 
             // Compute the Mahalanobis distance between the position components
             cv::Mat diff_pos = x_pos - mean_pos;
@@ -371,7 +378,7 @@ namespace ekf {
 
             cv::Mat mah = diff_pos.t() * inv_cov_pos * diff_pos;
 
-            auto squared_distance = mah.at<BaseType>(0,0);
+            auto squared_distance = mah.at<double>(0,0);
             double md = std::sqrt(squared_distance);
 
             return md;
@@ -392,13 +399,13 @@ namespace ekf {
             // H = dh/dx (Jacobian of measurement function w.r.t. the state)
             H = cv::Mat::zeros(7, 19, CV_64F);
             
-            H.at<BaseType>(0, 0) = 1.0;
-            H.at<BaseType>(1, 1) = 1.0;
-            H.at<BaseType>(2, 2) = 1.0;
-            H.at<BaseType>(3, 9) = 1.0;
-            H.at<BaseType>(4, 10) = 1.0;
-            H.at<BaseType>(5, 11) = 1.0;
-            H.at<BaseType>(6, 12) = 1.0;
+            H.at<double>(0, 0) = 1.0;
+            H.at<double>(1, 1) = 1.0;
+            H.at<double>(2, 2) = 1.0;
+            H.at<double>(3, 9) = 1.0;
+            H.at<double>(4, 10) = 1.0;
+            H.at<double>(5, 11) = 1.0;
+            H.at<double>(6, 12) = 1.0;
         }
 
         /**
@@ -414,7 +421,7 @@ namespace ekf {
         {
             Measurement measurement = cv::Mat::zeros(7, 1, CV_64F);
             
-            cv::Quat<BaseType> q(x.at<BaseType>(9,0), x.at<BaseType>(10,0), x.at<BaseType>(11,0), x.at<BaseType>(12,0));
+            cv::Quat<double> q(x.at<double>(9,0), x.at<double>(10,0), x.at<double>(11,0), x.at<double>(12,0));
             try {
                 q.normalize();
             } catch (const std::exception& e) {
@@ -422,13 +429,13 @@ namespace ekf {
                 throw;
             }
 
-            measurement.at<BaseType>(0,0) = x.at<BaseType>(0,0);
-            measurement.at<BaseType>(1,0) = x.at<BaseType>(1,0);
-            measurement.at<BaseType>(2,0) = x.at<BaseType>(2,0);
-            measurement.at<BaseType>(3,0) = q[0];
-            measurement.at<BaseType>(4,0) = q[1];
-            measurement.at<BaseType>(5,0) = q[2];
-            measurement.at<BaseType>(6,0) = q[3];
+            measurement.at<double>(0,0) = x.at<double>(0,0);
+            measurement.at<double>(1,0) = x.at<double>(1,0);
+            measurement.at<double>(2,0) = x.at<double>(2,0);
+            measurement.at<double>(3,0) = q[0];
+            measurement.at<double>(4,0) = q[1];
+            measurement.at<double>(5,0) = q[2];
+            measurement.at<double>(6,0) = q[3];
             
             return measurement;
         }

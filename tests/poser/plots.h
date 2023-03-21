@@ -174,8 +174,8 @@ namespace poses
      * @param [in] gp Gnuplot reference
      */
     void plot_demo( const std::vector<poses::Pose>& targets, 
-                    const std::vector< ekf::PoseQuaternionEKF<double>::State >& states,
-                    std::unique_ptr<ekf::PoseQuaternionEKF<double> >& pqekf,
+                    const std::vector< ekf::PoseQuaternionEKF::State>& states,
+                    std::unique_ptr<ekf::PoseQuaternionEKF>& pqekf,
                     const int index,
                     Gnuplot &gp)
     {

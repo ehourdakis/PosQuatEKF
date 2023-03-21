@@ -75,7 +75,7 @@ int main(int argc, char** argv)
         0.2)); // Outlier threshold
     
     // run a series of predict-update steps given the measurements
-    for(size_t i = 1; i <= measurements.size(); i++)
+    for(size_t i = 1; i < measurements.size(); i++)
     {
         // The diff between two ROS timestamps is in nanoseconds
         auto dt = (measurements[i].timestamp - measurements[i-1].timestamp)*1e-9;
@@ -123,19 +123,19 @@ int main(int argc, char** argv)
     
 #if(USE_GNUPLOT)
     // Plot graphs
-    std::vector<cv::Mat> orientations, otargets;
+    std::vector<cv::Quat<double> > orientations, otargets;
     std::vector<cv::Mat> positions, ptargets;
     std::vector<double> values;
 
     for(unsigned i = 0; i < ekf_states.size(); i++) {
-        orientations.push_back(ekf_states[i].rowRange(9, 13).colRange(0, 1));
-        otargets.push_back(poses::quaternionToVectorXd(measurements[i].orientation));
+        orientations.push_back(cv::Quat<double>(ekf_states[i].rowRange(9, 13).colRange(0, 1)));
+        otargets.push_back(measurements[i].orientation);
 
         positions.push_back(ekf_states[i].rowRange(0, 3).colRange(0, 1).t());
         ptargets.push_back(cv::Mat(measurements[i].position));
     }
 
-    // poses::graph_plot_quaternion(orientations, otargets);
+    poses::graph_plot_quaternion(orientations, otargets);
     poses::graph_plot_position(positions, ptargets);
 #endif
 

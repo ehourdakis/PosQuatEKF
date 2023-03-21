@@ -17,10 +17,6 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "The C++ standard to use")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Inlude Eigen
-find_package(Eigen3 REQUIRED)
-set(EXTRAS ${EXTRAS} Eigen3::Eigen)
-
 find_package(OpenCV 4.6.0 CONFIG REQUIRED PATHS "/files/Projects/Libraries/opencv/install/lib/cmake/opencv4" NO_DEFAULT_PATH)
 set(EXTRAS ${EXTRAS} ${OpenCV_LIBS})
 

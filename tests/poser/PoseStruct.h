@@ -7,10 +7,10 @@
 #include <cmath>
 #include <iomanip> // set precission cout
 
-#include <Eigen/Dense>
 #include <cmath>
 
 #include <opencv2/core/core.hpp>
+#include <opencv2/core/quaternion.hpp>
 
 namespace poses
 {
@@ -20,22 +20,20 @@ namespace poses
      */
     struct Pose {
     public:
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-        
         Pose() = default;
 
-        Pose(cv::Mat position_, Eigen::Quaterniond orientation_, double dt_)
+        Pose(cv::Mat position_, cv::Quat<double> orientation_, double dt_)
         : position(position_), orientation(orientation_), timestamp(dt_) {}
 
         void cout() {
             std::cout << "Position: " << position << std::endl;
-            std::cout << "Orientation: " << orientation.coeffs() << std::endl;
+            std::cout << "Orientation: " << orientation << std::endl;
             std::cout << "Timestamp: " << timestamp << std::endl;
         }
 
     public:
         cv::Vec3d position = cv::Vec3d();
-        Eigen::Quaterniond orientation = Eigen::Quaterniond();
+        cv::Quat<double> orientation = cv::Quat<double>(1.0,0.0,0.0,0.0);
         long long timestamp;
     };
 
@@ -69,11 +67,12 @@ namespace poses
                         pose.timestamp = std::stoll(field);
                     } else if (i >= 4 && i < 7 ) {
                         pose.position[i-4] = std::stod(field);
-                    } else if (i >= 7 && i <= 10) {
-                        pose.orientation.coeffs()(i - 7) = std::stod(field);
+                    } else if (i >= 7 && i <= 9) {
+                        pose.orientation[i - 7 + 1] = std::stod(field);
+                    } else if (i == 10) {
+                        pose.orientation[0] = std::stod(field);
                     }
                 }
-                // pose.cout();
                 poses.push_back(pose);
             }
 
@@ -123,7 +122,7 @@ namespace poses
         for (size_t i = 1; i < poses.size(); i++) 
         {
             cv::Vec3d position_difference = poses[i].position - poses[i-1].position;
-            double position_change = cv::norm(position_difference, cv::NORM_L2); //(poses[i].position - poses[i-1].position).norm();
+            double position_change = cv::norm(position_difference, cv::NORM_L2);
             if (position_change > 0.0) 
             {
                 pose_start_idxs.push_back(i);
@@ -131,8 +130,6 @@ namespace poses
         }
         pose_start_idxs.push_back(poses.size());
 
-        //for(auto i : pose_start_idxs) std::cout << i << " \n";
-        
         // Interpolate poses between start and end indices of each pose segment
         for (unsigned i = 0; i < pose_start_idxs.size() - 1; i++) 
         {
@@ -159,7 +156,7 @@ namespace poses
             {
                 double t = interp_times[j];
                 cv::Mat interp_pos;
-                Eigen::Quaterniond interp_quat;
+                cv::Quat<double> interp_quat;
                 if (j == 0) 
                 {
                     interp_pos = poses[start_idx].position;
@@ -171,17 +168,13 @@ namespace poses
                 } else 
                 {
                     double alpha = (t - poses[start_idx].timestamp) / (poses[end_idx-1].timestamp - poses[start_idx].timestamp);
-                    // std::cout <<"Intr " << alpha << " " << poses[end_idx-1].position.transpose() << " " << poses[start_idx].position.transpose() << "\n";
                     interp_pos = (1.0 - alpha) * poses[start_idx].position + alpha * poses[end_idx].position;
-                    interp_quat = poses[start_idx].orientation.slerp(alpha, poses[end_idx].orientation);
-                    //std::cout << interp_pos.transpose() << std::endl;
+                    interp_quat = cv::Quat<double>::slerp(poses[start_idx].orientation, poses[end_idx].orientation, alpha);
                 }
                 interp_quat.normalize();
                 interp_poses.push_back({interp_pos, interp_quat, t});
             }
         }
-
-        //for(auto k : interp_poses) k.cout();
 
         return true;
     }
@@ -203,8 +196,8 @@ namespace poses
         for (const auto& pose : interp_poses) {
             outfile << std::fixed << std::setprecision(0) << pose.timestamp << "," << std::setprecision(5) 
                     << pose.position[0] << "," << pose.position[1] << "," << pose.position[2] << ","
-                    << pose.orientation.w() << "," << pose.orientation.x() << ","
-                    << pose.orientation.y() << "," << pose.orientation.z() << "\n";
+                    << pose.orientation[0] << "," << pose.orientation[1] << ","
+                    << pose.orientation[2] << "," << pose.orientation[3] << "\n";
         }
         outfile.close();
 

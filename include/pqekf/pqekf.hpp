@@ -2,6 +2,7 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/core/core.hpp>
+#include <opencv2/core/quaternion.hpp>
 
 namespace ekf
 {
@@ -29,7 +30,7 @@ public:
      * @param orientation The initial system orientation to use for initialization
      */
     PoseQuaternionEKF(const cv::Vec3d& position = cv::Vec3d(0,0,0),
-                      const Eigen::Quaterniond& orientation = Eigen::Quaterniond::Identity(),
+                      const cv::Quat<T> orientation = cv::Quat<T>(1,0,0,0),
                       const double state_covariance = 1e-5,
                       const double process_covariance = 1e-5,
                       const double measurement_covariance = 1e+2,
@@ -85,17 +86,17 @@ public:
      * @param position The position component of the measurement.
      * @param orientation The orientation component represented as a normalized quaternion.
      */
-    const State update(const cv::Vec3d& position, const Eigen::Quaterniond& orientation)
+    const State update(const cv::Vec3d& position, const cv::Quat<T>& orientation)
     {
         cv::Mat measurement = cv::Mat::zeros(7, 1, CV_64F);
 
-        measurement.at<double>(0,0) = position[0];
-        measurement.at<double>(1,0) = position[1];
-        measurement.at<double>(2,0) = position[2];
-        measurement.at<double>(3,0) = orientation.w();
-        measurement.at<double>(4,0) = orientation.x();
-        measurement.at<double>(5,0) = orientation.y();
-        measurement.at<double>(6,0) = orientation.z();
+        measurement.at<T>(0,0) = position[0];
+        measurement.at<T>(1,0) = position[1];
+        measurement.at<T>(2,0) = position[2];
+        measurement.at<T>(3,0) = orientation[0];
+        measurement.at<T>(4,0) = orientation[1];
+        measurement.at<T>(5,0) = orientation[2];
+        measurement.at<T>(6,0) = orientation[3];
 
         auto x_ekf = _ekf->update(measurement, (_reject_outliers)?_outlier_threshold:-1.0); 
 
@@ -119,17 +120,17 @@ public:
      * @param orientation The initial system orientation to use for initialization
      */
     void init_state(const cv::Vec3d& position = cv::Vec3d(0,0,0),
-        const Eigen::Quaterniond& orientation = Eigen::Quaterniond::Identity())
+        const cv::Quat<T> orientation = cv::Quat<T>(1,0,0,0))
     {
         cv::Mat x = cv::Mat::zeros(19, 1, CV_64F);
 
-        x.at<double>(0,0)  = position[0];
-        x.at<double>(1,0)  = position[1];
-        x.at<double>(2,0)  = position[2];
-        x.at<double>(9,0)  = orientation.w();
-        x.at<double>(10,0) = orientation.x();
-        x.at<double>(11,0) = orientation.y();
-        x.at<double>(12,0) = orientation.z();
+        x.at<T>(0,0)  = position[0];
+        x.at<T>(1,0)  = position[1];
+        x.at<T>(2,0)  = position[2];
+        x.at<T>(9,0)  = orientation[0];
+        x.at<T>(10,0) = orientation[1];
+        x.at<T>(11,0) = orientation[2];
+        x.at<T>(12,0) = orientation[3];
 
         _ekf->setState(x);
     }

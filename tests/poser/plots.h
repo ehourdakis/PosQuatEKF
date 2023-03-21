@@ -1,39 +1,16 @@
 
 #include <vector>
-#include <Eigen/Core>
-#include <Eigen/Dense>
-
-#include <Eigen/Geometry>
-
 #include <gnuplot-iostream.h>
 
 namespace poses
 {
-
-    /**
-     * @brief Converts a quaternion to an Eigen::VectorXd
-     *
-     * @param [in] quat The quaternion to be converted
-     * @return The quaternion as an Eigen::VectorXd.
-     */
-    cv::Mat quaternionToVectorXd(const Eigen::Quaterniond& quat) {
-        cv::Mat quatVec(4, 1, CV_64F);
-
-        quatVec.at<double>(0,0) = quat.w();
-        quatVec.at<double>(1,0) = quat.x();
-        quatVec.at<double>(2,0) = quat.y();
-        quatVec.at<double>(3,0) = quat.z();
-
-        return quatVec;
-    }
-
     /**
      * @brief Plots four graphs, one for each quaternion coefficient.
      *
      * @param [in] matrices Vector of quaternions as Eigen::VectorXd
      * @param [in] targets Vector of targets as Eigen::VectorXd
      */
-    void graph_plot_quaternion(const std::vector<Eigen::VectorXd>& matrices, const std::vector<Eigen::VectorXd>& targets) {
+    void graph_plot_quaternion(const std::vector<cv::Quat<double> >& matrices, const std::vector<cv::Quat<double> >& targets) {
         // Create a new gnuplot object
         Gnuplot gp;
 
@@ -43,44 +20,44 @@ namespace poses
         gp << "set title 'qw'\n";
         gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
-            gp << mat(0, 0) << "\n";
+            gp << mat[0] << "\n";
         }
         gp << "e\n";
         for (const auto& mat : matrices) {
-            gp << mat(0, 0) << "\n";
+            gp << mat[0] << "\n";
         }
         gp << "e\n";
 
         gp << "set title 'qx'\n";
         gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
-            gp << mat(1, 0) << "\n";
+            gp << mat[1] << "\n";
         }
         gp << "e\n";
         for (const auto& mat : matrices) {
-            gp << mat(1, 0) << "\n";
+            gp << mat[1] << "\n";
         }
         gp << "e\n";
 
         gp << "set title 'qy'\n";
         gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
-            gp << mat(2, 0) << "\n";
+            gp << mat[2] << "\n";
         }
         gp << "e\n";
         for (const auto& mat : matrices) {
-            gp << mat(2, 0) << "\n";
+            gp << mat[2] << "\n";
         }
         gp << "e\n";
 
         gp << "set title 'qz'\n";
         gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
-            gp << mat(3, 0) << "\n";
+            gp << mat[3] << "\n";
         }
         gp << "e\n";
         for (const auto& mat : matrices) {
-            gp << mat(3, 0) << "\n";
+            gp << mat[3] << "\n";
         }
         gp << "e\n";
 
@@ -177,50 +154,13 @@ namespace poses
             y.push_back(pose.position[1]);
             z.push_back(pose.position[2]);
 
-            qw.push_back(pose.orientation.w());
-            qx.push_back(pose.orientation.x());
-            qy.push_back(pose.orientation.y());
-            qz.push_back(pose.orientation.z());
+            qw.push_back(pose.orientation[0]);
+            qx.push_back(pose.orientation[1]);
+            qy.push_back(pose.orientation[2]);
+            qz.push_back(pose.orientation[3]);
         }
 
         gp.send1d(boost::make_tuple(x, y, z));
-    }
-
-    /**
-     * @brief Plots the covariance. 
-     *
-     * @param [in] covariance A 3x3 Covariance matrix
-     */
-    void plot_covariance(const Eigen::MatrixXd& covariance, const Eigen::VectorXd& mean, Gnuplot &gp, double scale = 1.0) {
-        // Compute eigenvalues and eigenvectors of covariance matrix
-        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eig(covariance);
-        const Eigen::MatrixXd& eigenvalues = eig.eigenvalues();
-        const Eigen::MatrixXd& eigenvectors = eig.eigenvectors();
-
-        // Compute length of eigenvalues for scaling the eigenvectors
-        // const double eigenvalues_length = eigenvalues.maxCoeff() - eigenvalues.minCoeff();
-
-        // Compute x, y, and z coordinates of points on the ellipsoid
-        std::vector<double> xx, yy, zz;
-        for (double theta = 0; theta <= 2 * M_PI; theta += M_PI / 20) {
-            for (double phi = 0; phi <= M_PI; phi += M_PI / 20) {
-                double x = scale * (eigenvectors(0, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
-                                eigenvectors(0, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
-                                eigenvectors(0, 2) * eigenvalues(2) * cos(phi)) + mean(0);
-                double y = scale * (eigenvectors(1, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
-                                eigenvectors(1, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
-                                eigenvectors(1, 2) * eigenvalues(2) * cos(phi)) + mean(1);
-                double z = scale * (eigenvectors(2, 0) * eigenvalues(0) * sin(phi) * cos(theta) +
-                                eigenvectors(2, 1) * eigenvalues(1) * sin(phi) * sin(theta) +
-                                eigenvectors(2, 2) * eigenvalues(2) * cos(phi)) + mean(2);
-                xx.push_back(x);
-                yy.push_back(y);
-                zz.push_back(z);
-            }
-        }
-
-        // Send x, y, and z coordinates to Gnuplot iostream
-        gp.send1d(boost::make_tuple(xx, yy, zz));
     }
 
     /**
@@ -267,15 +207,11 @@ namespace poses
             gp << "set xlabel 'x'" << std::endl;
             gp << "set ylabel 'y'" << std::endl;
             gp << "set zlabel 'z'" << std::endl;
-            // gp << "set view 49, 48, 3, 1"<< std::endl;
         }
 
         gp << "splot ";
         gp << "'-' with linespoints pointtype 7 linecolor rgb 'red' lw 1 ps 0.8 title 'Measurements w outliers'";
         gp << ",'-' with linespoints pointtype 7 linecolor rgb 'blue' lw 1 ps 0.8 title 'EKF'";
-        // gp << ", '-' with lines lw 1.0 linecolor rgb 'blue' title 'Process Covariance'";
-        // plot transparent line. In #90D13030, first two digits (90) are transparency, remaining RGB code
-        // gp << ", '-' with lines lw 0.5 lc rgb \"#95FF6666\" title 'Measurement Covariance'";
         gp << std::endl;
 
         std::vector<Pose>::const_iterator first = targets.begin();
@@ -283,11 +219,6 @@ namespace poses
         plot_trajectory(std::vector<Pose>(first, last), gp);
         
         plot_ekf(states, gp);
-
-        // plot_covariance(pqekf->getEKF()->getStateCovariance().topLeftCorner<3, 3>(),
-        //                 pqekf->getState().head<3>(), gp, 10);
-        // plot_covariance(pqekf->getEKF()->getInnovationCovariance().topLeftCorner<3, 3>(), 
-        //                 targets[index].position, gp, 10);
     }
 
 }

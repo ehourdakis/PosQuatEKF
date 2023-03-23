@@ -1,8 +1,43 @@
 #ifndef EXTENDEDKALMANFILTER_
 #define EXTENDEDKALMANFILTER_
 
+#include <optional>
+
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
+
 namespace ekf {
-    
+
+    // Check if a quaternion is normalized
+    std::optional<Eigen::Quaterniond> safe_normalize(const Eigen::Quaterniond& qn) {
+        double epsilon = 1e-5; // Tolerance for the normalization check
+
+        Eigen::Quaterniond q = qn;
+        // Check if the quaternion is close to zero
+        if (q.norm() < epsilon) {
+            std::cerr << "Error: Quaternion has near-zero norm." << std::endl;
+            return std::nullopt;
+        }
+
+        // Normalize the quaternion
+        q.normalize();
+
+        // Check if the quaternion is now normalized
+        if (std::abs(q.norm() - 1.0) > epsilon) {
+            std::cerr << "Error: Quaternion normalization failed." << std::endl;
+            return std::nullopt;
+        }
+
+        return q;
+    }
+
+    // Check if a matrix is invertible, specifiy a tolerance
+    bool is_invertible(const Eigen::MatrixXd& mat, double epsilon = 1e-15) {
+        double det = mat.determinant();
+        return std::abs(det) > epsilon;
+    }
+
     /**
      * @brief Extended Kalman Filter (EKF)
      *
@@ -22,14 +57,19 @@ namespace ekf {
          */
         ExtendedKalmanFilter()
         {
-            // Setup state and covariance
+            // Initialize state and covariance
+            x = State::Zero();
+
             P.setIdentity();
 
+            // Initialize process and measurement noise
             W.setIdentity();
             PCov.setIdentity();
 
             V.setIdentity();
             MCov.setIdentity();
+
+            IC.setIdentity();
         }
 
         /**
@@ -75,6 +115,12 @@ namespace ekf {
                 std::cout << "Outlier Detected\n";
 
                 return getState();
+            }
+
+            // check if innovation covariance is invertible
+            if (!is_invertible(IC)) {
+                std::cout << IC <<std::endl;
+                throw std::runtime_error("innovation covariance is not invertible");
             }
 
             // compute kalman gain
@@ -176,7 +222,13 @@ namespace ekf {
         {
             // normalize the quaternion before hand
             Eigen::Quaterniond q(x(9), x(10), x(11), x(12));
-            q.normalize();
+            std::optional<Eigen::Quaterniond> normalized_quat = safe_normalize(q);
+
+            if (normalized_quat.has_value()) {
+                q = normalized_quat.value();
+            } else {
+                std::cout << "Failed to normalize quaternion." << std::endl;
+            }
 
             double sqw  = q.w();
             double sqx  = q.x();
@@ -299,7 +351,14 @@ namespace ekf {
 
             // normalize the quaternion after computing state transition
             Eigen::Quaterniond q(x_(9), x_(10), x_(11), x_(12));
-            q.normalize();
+            std::optional<Eigen::Quaterniond> normalized_quat = safe_normalize(q);
+
+            if (normalized_quat.has_value()) {
+                q = normalized_quat.value();
+            } else {
+                std::cout << "Failed to normalize quaternion." << std::endl;
+            }
+
             x_(9) = q.w();
             x_(10) = q.x();
             x_(11) = q.y();
@@ -319,8 +378,11 @@ namespace ekf {
                             const Eigen::VectorXd& mean,
                             const Eigen::MatrixXd& cov) {
             Eigen::VectorXd diff = x - mean;
-            Eigen::MatrixXd inv_cov = cov.inverse();
-            double md = std::sqrt(diff.transpose() * cov * diff);
+
+            if (!is_invertible(cov))
+                throw std::runtime_error("covariance matrix is not invertible");
+
+            double md = std::sqrt(diff.transpose() * cov.inverse() * diff);
             
             return md;
         }
@@ -344,8 +406,10 @@ namespace ekf {
 
             // Compute the Mahalanobis distance between the position components
             Eigen::VectorXd diff_pos = x_pos - mean_pos;
-            Eigen::MatrixXd inv_cov_pos = cov_pos.inverse();
-            double md = std::sqrt(diff_pos.transpose() * inv_cov_pos * diff_pos);
+            if (!is_invertible(cov_pos))
+                throw std::runtime_error("covariance matrix is not invertible");
+
+            double md = std::sqrt(diff_pos.transpose() * cov_pos.inverse() * diff_pos);
 
             return md;
         }
@@ -386,9 +450,16 @@ namespace ekf {
         Measurement h(const State& x) const
         {
             Measurement measurement;
+            measurement.setZero();
             
             Eigen::Quaterniond q(x(9), x(10), x(11), x(12));
-            q.normalize();
+            std::optional<Eigen::Quaterniond> normalized_quat = safe_normalize(q);
+
+            if (normalized_quat.has_value()) {
+                q = normalized_quat.value();
+            } else {
+                std::cout << "Failed to normalize quaternion." << std::endl;
+            }
 
             measurement(0) = x.x();
             measurement(1) = x.y();

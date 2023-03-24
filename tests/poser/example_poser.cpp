@@ -20,8 +20,6 @@
 #include <termios.h>
 #include <stdbool.h>
 
-using PoseQuaternionEKFd = ekf::PoseQuaternionEKF<double>;
-	
 /**
  * @brief Non-blocking character reading.
  * @ref https://stackoverflow.com/a/33201364
@@ -48,7 +46,7 @@ int kbhit() {
 int main(int argc, char** argv)
 {
     std::vector<poses::Pose> measurements;
-    std::vector<PoseQuaternionEKFd::State > ekf_states; // the stored states of the EKF
+    std::vector<ekf::PoseQuaternionEKF::State > ekf_states; // the stored states of the EKF
 
     bool paused = false; // Pause using spacebar
 
@@ -66,7 +64,7 @@ int main(int argc, char** argv)
 #endif
 
     // initialize pqekf
-    std::unique_ptr<PoseQuaternionEKFd> pqekf(new PoseQuaternionEKFd(
+    std::unique_ptr<ekf::PoseQuaternionEKF> pqekf(new ekf::PoseQuaternionEKF(
         measurements[0].position,  // Initial position
         measurements[0].orientation, // Initial orientation
         1e-2, // Scale initial state covariance
@@ -75,7 +73,7 @@ int main(int argc, char** argv)
         0.2)); // Outlier threshold
     
     // run a series of predict-update steps given the measurements
-    for(size_t i = 1; i <= measurements.size(); i++)
+    for(size_t i = 1; i < measurements.size(); i++)
     {
         // The diff between two ROS timestamps is in nanoseconds
         auto dt = (measurements[i].timestamp - measurements[i-1].timestamp)*1e-9;

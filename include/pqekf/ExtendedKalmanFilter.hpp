@@ -41,16 +41,14 @@ namespace ekf {
     /**
      * @brief Extended Kalman Filter (EKF)
      *
-     * @param BaseType The base type for variables
      */
-    template<class BaseType>
     class ExtendedKalmanFilter
     {
     public:
-        using State = Eigen::Matrix<BaseType, 19, 1>;
-        using Measurement = Eigen::Matrix<BaseType, 7, 1>;
-        using Square = Eigen::Matrix<BaseType, 19, 19>;
-        using MCovariance = Eigen::Matrix<BaseType, 7, 7>;
+        using State = Eigen::Matrix<double, 19, 1>;
+        using Measurement = Eigen::Matrix<double, 7, 1>;
+        using Square = Eigen::Matrix<double, 19, 19>;
+        using MCovariance = Eigen::Matrix<double, 7, 7>;
 
         /**
          * @brief Default constructor
@@ -124,7 +122,9 @@ namespace ekf {
             }
 
             // compute kalman gain
-            Eigen::Matrix<BaseType, 19, 7> K = P * H.transpose() * IC.inverse();
+            // cholesky decomposition of the innovation covariance
+            auto inv_IC = IC.llt().solve(MCovariance::Identity());
+            Eigen::Matrix<double, 19, 7> K = P * H.transpose() * inv_IC;
 
             // Update state using computed kalman gain and innovation
             x += K * ( z - spred );
@@ -382,7 +382,8 @@ namespace ekf {
             if (!is_invertible(cov))
                 throw std::runtime_error("covariance matrix is not invertible");
 
-            double md = std::sqrt(diff.transpose() * cov.inverse() * diff);
+            auto inv_cov = cov.llt().solve(Eigen::Matrix<double, 7, 7>::Identity());
+            double md = std::sqrt(diff.transpose() * inv_cov * diff);
             
             return md;
         }
@@ -409,7 +410,8 @@ namespace ekf {
             if (!is_invertible(cov_pos))
                 throw std::runtime_error("covariance matrix is not invertible");
 
-            double md = std::sqrt(diff_pos.transpose() * cov_pos.inverse() * diff_pos);
+            auto inv_cov_pos = cov_pos.llt().solve(Eigen::Matrix3d::Identity());
+            double md = std::sqrt(diff_pos.transpose() * inv_cov_pos * diff_pos);
 
             return md;
         }
@@ -424,7 +426,7 @@ namespace ekf {
          *
          * @param x The current system state around which to linearize
          */
-        inline void updateMeasurementJacobians( const State& x)
+        inline void updateMeasurementJacobians(const State& x)
         {
             // H = dh/dx (Jacobian of measurement function w.r.t. the state)
             H.setZero();
@@ -497,7 +499,7 @@ namespace ekf {
         State x;
 
         //! Measurement model jacobian
-        Eigen::Matrix<BaseType, 7, 19> H;
+        Eigen::Matrix<double, 7, 19> H;
     };
 }
 

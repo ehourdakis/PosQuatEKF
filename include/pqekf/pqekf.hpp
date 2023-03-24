@@ -10,14 +10,12 @@ namespace ekf
  * update() functions. It is robust to outliers, using the mahalanobis
  * distance to filter measurements.
  *
- * @param T Numeric scalar type
  */
-template<class T>
 class PoseQuaternionEKF {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
-    using EKF = ExtendedKalmanFilter<T>;
+    using EKF = ExtendedKalmanFilter;
     using State = EKF::State;
     using Measurement = EKF::Measurement;
 

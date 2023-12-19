@@ -45,10 +45,10 @@ namespace ekf {
     class ExtendedKalmanFilter
     {
     public:
-        using State = Eigen::Matrix<double, 19, 1>;
-        using Measurement = Eigen::Matrix<double, 7, 1>;
-        using Square = Eigen::Matrix<double, 19, 19>;
-        using MCovariance = Eigen::Matrix<double, 7, 7>;
+        using State = Eigen::Matrix<double, 25, 1>;
+        using Measurement = Eigen::Matrix<double, 13, 1>;
+        using Square = Eigen::Matrix<double, 25, 25>;
+        using MCovariance = Eigen::Matrix<double, 13, 13>;
 
         /**
          * @brief Default constructor
@@ -288,6 +288,24 @@ namespace ekf {
             F(13, 16) = dt;
             F(14, 17) = dt;
             F(15, 18) = dt;
+
+            // Partial derivatives of quaternion components with respect to gyroscope biases
+            F(10, 19) = -0.5 * dt * sqw; // Partial derivative of sqx with respect to b_gx
+            F(10, 20) = 0.5 * dt * sqz;  // Partial derivative of sqx with respect to b_gy
+            F(10, 21) = -0.5 * dt * sqy; // Partial derivative of sqx with respect to b_gz
+
+            F(11, 19) = -0.5 * dt * sqz; // Partial derivative of sqy with respect to b_gx
+            F(11, 20) = -0.5 * dt * sqw; // Partial derivative of sqy with respect to b_gy
+            F(11, 21) = 0.5 * dt * sqx;  // Partial derivative of sqy with respect to b_gz
+
+            F(12, 19) = 0.5 * dt * sqy;  // Partial derivative of sqz with respect to b_gx
+            F(12, 20) = -0.5 * dt * sqx; // Partial derivative of sqz with respect to b_gy
+            F(12, 21) = -0.5 * dt * sqw; // Partial derivative of sqz with respect to b_gz
+
+            // Partial derivatives of velocity components with respect to accelerometer biases
+            F(3, 22) = -dt; // Partial derivative of vx with respect to b_ax
+            F(4, 23) = -dt; // Partial derivative of vy with respect to b_ay
+            F(5, 24) = -dt; // Partial derivative of vz with respect to b_az
         }
 
         /**
@@ -323,6 +341,12 @@ namespace ekf {
             const double sdwx  = x(16);
             const double sdwy  = x(17);
             const double sdwz  = x(18);
+            const double b_ax  = x(19);
+            const double b_ay  = x(20);
+            const double b_az  = x(21);
+            const double b_gx  = x(22);
+            const double b_gy  = x(23);
+            const double b_gz  = x(24);
 
             //! Predicted state vector after transition
             State x_;
@@ -332,22 +356,28 @@ namespace ekf {
             x_(0)  = sx + svx * dt + 0.5 * sax * dt * dt;
             x_(1)  = sy + svy * dt + 0.5 * say * dt * dt;
             x_(2)  = sz + svz * dt + 0.5 * saz * dt * dt;
-            x_(3)  = svx + sax * dt;
-            x_(4)  = svy + say * dt;
-            x_(5)  = svz + saz * dt;
+            x_(3)  = svx + (sax - b_ax) * dt; // b_ax is the accelerometer bias
+            x_(4)  = svy + (say - b_ay) * dt;
+            x_(5)  = svz + (saz - b_az) * dt;
             x_(6)  = sax;
             x_(7)  = say;
             x_(8)  = saz;
-            x_(9)  = sqw - 0.5 * dt * (swx * sqx + swy * sqy + swz * sqz);
-            x_(10) = sqx + 0.5 * dt * (swx * sqw - swy * sqz + swz * sqy);
-            x_(11) = sqy + 0.5 * dt * (swx * sqz + swy * sqw - swz * sqx);
-            x_(12) = sqz - 0.5 * dt * (swx * sqy - swy * sqx - swz * sqw);
+            x_(9)  = sqw - 0.5 * dt * ((swx - b_gx) * sqx + (swy - b_gy) * sqy + (swz - b_gz) * sqz); // b_gx are the gyroscope biases
+            x_(10) = sqx + 0.5 * dt * ((swx - b_gx) * sqw - (swy - b_gy) * sqz + (swz - b_gz) * sqy);
+            x_(11) = sqy + 0.5 * dt * ((swx - b_gx) * sqz + (swy - b_gy) * sqw - (swz - b_gz) * sqx);
+            x_(12) = sqz - 0.5 * dt * ((swx - b_gx) * sqy - (swy - b_gy) * sqx - (swz - b_gz) * sqw);
             x_(13) = swx + sdwx * dt;
             x_(14) = swy + sdwy * dt;
             x_(15) = swz + sdwz * dt;
             x_(16) = sdwx;
             x_(17) = sdwy;
             x_(18) = sdwz;
+            x_(19) = b_ax;
+            x_(20) = b_ay;
+            x_(21) = b_az;
+            x_(22) = b_gx;
+            x_(23) = b_gy;
+            x_(24) = b_gz;
 
             // normalize the quaternion after computing state transition
             Eigen::Quaterniond q(x_(9), x_(10), x_(11), x_(12));
@@ -359,7 +389,7 @@ namespace ekf {
                 std::cout << "Failed to normalize quaternion." << std::endl;
             }
 
-            x_(9) = q.w();
+            x_(9)  = q.w();
             x_(10) = q.x();
             x_(11) = q.y();
             x_(12) = q.z();
@@ -430,14 +460,33 @@ namespace ekf {
         {
             // H = dh/dx (Jacobian of measurement function w.r.t. the state)
             H.setZero();
-            
-            H(0, 0) = 1.0;
-            H(1, 1) = 1.0;
-            H(2, 2) = 1.0;
-            H(3, 9) = 1.0;
-            H(4, 10) = 1.0;
-            H(5, 11) = 1.0;
-            H(6, 12) = 1.0;
+
+            // Position from SLAM system
+            H(0, 0) = 1.0; // Partial derivative of x position w.r.t. x
+            H(1, 1) = 1.0; // Partial derivative of y position w.r.t. y
+            H(2, 2) = 1.0; // Partial derivative of z position w.r.t. z
+
+            // Orientation from SLAM system
+            H(3, 9) = 1.0;  // Partial derivative of qw w.r.t. qw
+            H(4, 10) = 1.0; // Partial derivative of qx w.r.t. qx
+            H(5, 11) = 1.0; // Partial derivative of qy w.r.t. qy
+            H(6, 12) = 1.0; // Partial derivative of qz w.r.t. qz
+
+            // Linear acceleration from IMU (subtracting biases)
+            H(7, 6) = 1.0;  // Partial derivative of ax w.r.t. sax
+            H(7, 19) = -1.0; // Partial derivative of ax w.r.t. b_ax
+            H(8, 7) = 1.0;  // Partial derivative of ay w.r.t. say
+            H(8, 20) = -1.0; // Partial derivative of ay w.r.t. b_ay
+            H(9, 8) = 1.0;  // Partial derivative of az w.r.t. saz
+            H(9, 21) = -1.0; // Partial derivative of az w.r.t. b_az
+
+            // Angular velocity from IMU (subtracting biases)
+            H(10, 13) = 1.0; // Partial derivative of wx w.r.t. swx
+            H(10, 22) = -1.0; // Partial derivative of wx w.r.t. b_gx
+            H(11, 14) = 1.0; // Partial derivative of wy w.r.t. swy
+            H(11, 23) = -1.0; // Partial derivative of wy w.r.t. b_gy
+            H(12, 15) = 1.0; // Partial derivative of wz w.r.t. swz
+            H(12, 24) = -1.0; // Partial derivative of wz w.r.t. b_gz
         }
 
         /**
@@ -471,6 +520,16 @@ namespace ekf {
             measurement(5) = q.y();
             measurement(6) = q.z();
             
+            // Linear acceleration from IMU (subtracting biases)
+            measurement(7) = x(6) - x(19); // ax - b_ax
+            measurement(8) = x(7) - x(20); // ay - b_ay
+            measurement(9) = x(8) - x(21); // az - b_az
+
+            // Angular velocity from IMU (subtracting biases)
+            measurement(10) = x(13) - x(22); // wx - b_gx
+            measurement(11) = x(14) - x(23); // wy - b_gy
+            measurement(12) = x(15) - x(24); // wz - b_gz
+            
             return measurement;
         }
     private:
@@ -499,7 +558,7 @@ namespace ekf {
         State x;
 
         //! Measurement model jacobian
-        Eigen::Matrix<double, 7, 19> H;
+        Eigen::Matrix<double, 13, 25> H;
     };
 }
 

@@ -124,7 +124,7 @@ namespace ekf {
             // compute kalman gain
             // cholesky decomposition of the innovation covariance
             auto inv_IC = IC.llt().solve(MCovariance::Identity());
-            Eigen::Matrix<double, 19, 7> K = P * H.transpose() * inv_IC;
+            Eigen::Matrix<double, 25, 13> K = P * H.transpose() * inv_IC;
 
             // Update state using computed kalman gain and innovation
             x += K * ( z - spred );
@@ -352,7 +352,15 @@ namespace ekf {
             State x_;
             x_.setZero();
             
-            // evolution of state
+            /**
+             * @brief Evolution of state 
+             * @note Effect of Biases on Measurements
+             * In the context of IMU sensors, biases are systematic errors that are added to the true sensor readings. 
+             * For instance, if an accelerometer has a bias `b_ax` in the x-direction, the actual measured acceleration 
+             * `ax` is the true acceleration `sax` plus the bias: `ax_measured = sax + b_ax`
+             * In the EKF, the state estimate reflects the true acceleration, not the biased measurement. Therefore, 
+             * we correct the measured acceleration by subtracting the estimated bias: `sax_estimated = ax_measured - b_ax`.
+             */
             x_(0)  = sx + svx * dt + 0.5 * sax * dt * dt;
             x_(1)  = sy + svy * dt + 0.5 * say * dt * dt;
             x_(2)  = sz + svz * dt + 0.5 * saz * dt * dt;
@@ -454,6 +462,8 @@ namespace ekf {
          *
          * @note Consult the readme file for the derivation of these equations.
          *
+         * @note The Jacobian matrix H represents how changes in the state vector 
+         * affect the expected measurements.
          * @param x The current system state around which to linearize
          */
         inline void updateMeasurementJacobians(const State& x)
@@ -472,7 +482,18 @@ namespace ekf {
             H(5, 11) = 1.0; // Partial derivative of qy w.r.t. qy
             H(6, 12) = 1.0; // Partial derivative of qz w.r.t. qz
 
-            // Linear acceleration from IMU (subtracting biases)
+            /**
+             * @brief Linear acceleration and angular velocity from IMU (subtracting biases)
+             * The Jacobian matrix `H` represents how changes in the state vector affect 
+             * the expected measurements. 
+             * For example, `H(7, 6) = 1.0`, means a unit change in the true acceleration 
+             * `sax` (state) results in the same unit change in the measured acceleration 
+             * `ax` (measurement).
+             * Conversely, `H(7, 19) = -1.0` means a unit change in the estimated bias `b_ax` 
+             * (state) results in an opposite unit change in the measured acceleration `ax` 
+             * (measurement). This is the result of the bias is subtracted from the measured  
+             * value, in the state estimate, to estimate the true value.
+             */
             H(7, 6) = 1.0;  // Partial derivative of ax w.r.t. sax
             H(7, 19) = -1.0; // Partial derivative of ax w.r.t. b_ax
             H(8, 7) = 1.0;  // Partial derivative of ay w.r.t. say
@@ -480,7 +501,6 @@ namespace ekf {
             H(9, 8) = 1.0;  // Partial derivative of az w.r.t. saz
             H(9, 21) = -1.0; // Partial derivative of az w.r.t. b_az
 
-            // Angular velocity from IMU (subtracting biases)
             H(10, 13) = 1.0; // Partial derivative of wx w.r.t. swx
             H(10, 22) = -1.0; // Partial derivative of wx w.r.t. b_gx
             H(11, 14) = 1.0; // Partial derivative of wy w.r.t. swy
@@ -532,6 +552,7 @@ namespace ekf {
             
             return measurement;
         }
+        
     private:
         //! Innovation covariance
         MCovariance IC;

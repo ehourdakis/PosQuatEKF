@@ -40,7 +40,7 @@ namespace poses
         gp << "set multiplot layout 2,2\n";
 
         gp << "set title 'qw'\n";
-        gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
+        gp << "plot '-' with lines lw 2 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 1 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
             gp << mat(0, 0) << "\n";
         }
@@ -51,7 +51,7 @@ namespace poses
         gp << "e\n";
 
         gp << "set title 'qx'\n";
-        gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
+        gp << "plot '-' with lines lw 2 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 1 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
             gp << mat(1, 0) << "\n";
         }
@@ -62,7 +62,7 @@ namespace poses
         gp << "e\n";
 
         gp << "set title 'qy'\n";
-        gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
+        gp << "plot '-' with lines lw 2 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 1 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
             gp << mat(2, 0) << "\n";
         }
@@ -73,7 +73,7 @@ namespace poses
         gp << "e\n";
 
         gp << "set title 'qz'\n";
-        gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
+        gp << "plot '-' with lines lw 2 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 1 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
             gp << mat(3, 0) << "\n";
         }
@@ -101,7 +101,7 @@ namespace poses
         gp << "set multiplot layout 2,2\n";
 
         gp << "set title 'X'\n";
-        gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
+        gp << "plot '-' with lines lw 2 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 1 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
             gp << mat(0, 0) << "\n";
         }
@@ -112,7 +112,7 @@ namespace poses
         gp << "e\n";
 
         gp << "set title 'Y'\n";
-        gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
+        gp << "plot '-' with lines lw 2 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 1 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
             gp << mat(1, 0) << "\n";
         }
@@ -123,7 +123,7 @@ namespace poses
         gp << "e\n";
 
         gp << "set title 'Z'\n";
-        gp << "plot '-' with lines lw 1 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 2 title 'EKF Estimate'\n";
+        gp << "plot '-' with lines lw 2 linecolor 'blue' title 'Measurements w outliers', '-' with lines linecolor 'red' lw 1 title 'EKF Estimate'\n";
         for (const auto& mat : targets) {
             gp << mat(2, 0) << "\n";
         }
@@ -143,7 +143,7 @@ namespace poses
      * @param [in] poses A vector of ekf estimates
      * @param [in] fig_number The Matplotlibcpp figure number
      */
-    void plot_ekf(const std::vector<Eigen::Matrix<double, 19, 1> >& poses, Gnuplot &gp) {
+    void plot_ekf(const std::vector<Eigen::Matrix<double, 25, 1> >& poses, Gnuplot &gp) {
         std::vector<double> x, y, z, qx, qy, qz, qw;
 
         auto skip = 0; // skip mod

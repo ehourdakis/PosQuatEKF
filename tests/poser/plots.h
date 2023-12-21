@@ -137,6 +137,47 @@ namespace poses
         gp << "unset multiplot\n";
     }
 
+    void graph_plot_biases(const std::vector<Eigen::VectorXd>& accelerometer_biases, const std::vector<Eigen::VectorXd>& gyro_biases) {
+        // Create a new gnuplot object
+        Gnuplot gp;
+
+        // Create four separate subplots for each row of the matrices
+        gp << "set multiplot layout 2,1\n";
+
+        gp << "set title 'Accelerometer Biases'\n";
+        gp << "plot '-' with lines lw 2 linecolor 'blue' title 'Ax', '-' with lines linecolor 'red' lw 1 title 'Ay', '-' with lines linecolor 'green' lw 1  title 'Az'\n";
+        for (const auto& mat : accelerometer_biases) {
+            gp << mat(0, 0) << "\n";
+        }
+        gp << "e\n";
+        for (const auto& mat : accelerometer_biases) {
+            gp << mat(1, 0) << "\n";
+        }
+        gp << "e\n";
+        for (const auto& mat : accelerometer_biases) {
+            gp << mat(2, 0) << "\n";
+        }
+        gp << "e\n";
+
+        gp << "set title 'Gyroscope Biases'\n";
+        gp << "plot '-' with lines lw 2 linecolor 'blue' title 'Gx', '-' with lines linecolor 'red' lw 1 title 'Gy', '-' with lines linecolor 'green' lw 1 title 'Gz'\n";
+        for (const auto& mat : gyro_biases) {
+            gp << mat(0, 0) << "\n";
+        }
+        gp << "e\n";
+        for (const auto& mat : gyro_biases) {
+            gp << mat(1, 0) << "\n";
+        }
+        gp << "e\n";
+        for (const auto& mat : gyro_biases) {
+            gp << mat(2, 0) << "\n";
+        }
+        gp << "e\n";
+
+        // Reset the layout to a single plot
+        gp << "unset multiplot\n";
+    }
+
     /**
      * @brief Plots the ekf position estimates.
      *

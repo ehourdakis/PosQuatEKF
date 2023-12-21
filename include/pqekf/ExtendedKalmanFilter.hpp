@@ -137,6 +137,73 @@ namespace ekf {
         }
 
         /**
+         * @brief Updates the state with only a SLAM measurement.
+         * 
+         * This function updates the state of the system using a measurement from a Simultaneous Localization 
+         * and Mapping (SLAM) system. It integrates the new measurement into the current state estimate.
+         * The function also includes a check for measurement outliers based on the Mahalanobis distance.
+         * 
+         * @param slam_measurement The SLAM measurement as an Eigen::VectorXd. It is expected to contain the 
+         *                         position (sx, sy, sz) and orientation (quaternion sqw, sqx, sqy, sqz).
+         * @param outlier_threshold Threshold for the Mahalanobis distance to consider a measurement as an 
+         *                          outlier. Measurements with a Mahalanobis distance greater than this 
+         *                          threshold will be rejected.
+         * 
+         * @details The function first constructs the measurement model matrix (H_slam) and the innovation 
+         *          covariance matrix (R_slam) for the SLAM measurement. It then computes the innovation, 
+         *          the Kalman gain, and performs the state update. If the innovation covariance matrix (S) 
+         *          is not invertible or if the Mahalanobis distance of the innovation exceeds the outlier 
+         *          threshold, the function will abort the update and return early.
+         */
+        void updateWithSLAM(const Eigen::VectorXd& slam_measurement, double outlier_threshold) 
+        {
+            // Update measurement model and Jacobian for SLAM
+            Eigen::Matrix<double, 7, 25> H_slam;
+            H_slam.setZero();
+
+            // Mapping position from the state vector
+            H_slam(0, 0) = 1.0; // sx
+            H_slam(1, 1) = 1.0; // sy
+            H_slam(2, 2) = 1.0; // sz
+
+            // Mapping orientation (quaternion) from the state vector
+            H_slam(3, 9) = 1.0;  // sqw
+            H_slam(4, 10) = 1.0; // sqx
+            H_slam(5, 11) = 1.0; // sqy
+            H_slam(6, 12) = 1.0; // sqz
+            
+            // Compute the innovation covariance for SLAM
+            Eigen::Matrix<double, 7, 7> R_slam = Eigen::Matrix<double, 7, 7>::Identity() * 1e-3; // Define the measurement noise covariance for SLAM
+            Eigen::Matrix<double, 7, 7> S = H_slam * P * H_slam.transpose() + R_slam;
+
+            // Check if S is invertible
+            if (!is_invertible(S)) 
+            {
+                std::cerr << "Innovation covariance is not invertible for SLAM update." << std::endl;
+                return;
+            }
+
+            // Compute the Kalman gain
+            Eigen::Matrix<double, 25, 7> K = P * H_slam.transpose() * S.inverse();
+            std::cout << "SLAM Kalman Gain (K): \n" << K << "\n\n";
+
+            // Update the state and covariance
+            Eigen::VectorXd y = slam_measurement - h(x).head<7>(); // Innovation
+            
+            std::cout << "SLAM Innovation (y): \n" << y << "\n\n";
+
+            // Compute Mahalanobis distance for outlier detection
+            double mahalanobis_dist = std::sqrt(y.transpose() * S.inverse() * y);
+            if (mahalanobis_dist > outlier_threshold) 
+            {
+                std::cout << "Outlier Detected in SLAM Update " << " Mah: " << mahalanobis_dist << " Outlier threshold: " << outlier_threshold << std::endl;
+                return;
+            }
+
+            x += K * y;
+            P -= K * H_slam * P;
+        }
+        /**
          * @brief Returns the innovation covariance matrix
          */
         inline const MCovariance& getInnovationCovariance()

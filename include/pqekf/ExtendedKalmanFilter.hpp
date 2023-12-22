@@ -203,6 +203,77 @@ namespace ekf {
             x += K * y;
             P -= K * H_slam * P;
         }
+
+        /**
+         * @brief Updates the state with accelerometer and gyroscope measurements.
+         * 
+         * This function updates the state vector using measurements from an accelerometer and a gyroscope. 
+         * It applies an update step for both accelerometer and gyroscope measurements combined. It also 
+         * handles outlier rejection based on Mahalanobis distance.
+         *
+         * @param acc_measurement Measurement from the accelerometer as an Eigen::Vector3d.
+         * @param gyro_measurement Measurement from the gyroscope as an Eigen::Vector3d.
+         * @param outlier_threshold Threshold for Mahalanobis distance for outlier rejection.
+         * 
+         * @details
+         * The function constructs the measurement model matrix (H_combined) for both accelerometer and 
+         * gyroscope. It then computes the innovation covariance, Kalman gain, and performs the state 
+         * and covariance matrix update. The function does not perform outlier detection in its current 
+         * implementation.
+         */
+        void updateWithAccelerometerGyroscope(const Eigen::Vector3d& acc_measurement, const Eigen::Vector3d& gyro_measurement, double outlier_threshold) {
+            std::cout << "Accelerometer: " << acc_measurement.transpose() << " " << " Gyroscope: " << gyro_measurement.transpose() << std::endl;
+
+            // Update measurement model and Jacobian for combined accelerometer and gyroscope
+            Eigen::Matrix<double, 6, 25> H_combined;
+            H_combined.setZero();
+            H_combined.block<3, 3>(0, 6) = Eigen::Matrix3d::Identity(); // Measurement model for acceleration
+            H_combined.block<3, 3>(3, 13) = Eigen::Matrix3d::Identity(); // Measurement model for angular velocity
+
+            // Compute the innovation covariance for combined measurements
+            Eigen::Matrix<double, 6, 6> R_combined = Eigen::Matrix<double, 6, 6>::Identity() * 1e-1; // Adjust noise covariance as needed
+            Eigen::Matrix<double, 6, 6> S = H_combined * P * H_combined.transpose() + R_combined;
+
+            std::cout << "AccelGuro Innovation Covariance (S): \n" << S << "\n\n";
+
+            // Check if S is invertible
+            if (!is_invertible(S)) 
+            {
+                std::cout << "Innovation covariance is not invertible for combined accelerometer and gyroscope update." << std::endl;
+                return;
+            }
+
+            /**
+             * @brief Compute the Kalman gain 
+             * @note The Kalman Gain is used to weigh this innovation vector to update the state estimate. 
+             * The gain determines how much trust the filter places in the new measurements versus its own model.
+             */
+            Eigen::Matrix<double, 25, 6> K = P * H_combined.transpose() * S.inverse();
+            std::cout << "AccelGuro Kalman Gain (K): \n" << K << "\n\n";
+
+            // Compute the innovation
+            Eigen::VectorXd y(6);
+            y.head<3>() = acc_measurement - h(x).segment<3>(7); // Accelerometer innovation
+            y.tail<3>() = gyro_measurement - h(x).segment<3>(10); // Gyroscope innovation
+            
+            std::cout << "AccelGuro Innovation (y): \n" << y << "\n\n";
+
+            // Compute Mahalanobis distance for outlier detection
+            // double mahalanobis_dist = std::sqrt(y.transpose() * S.inverse() * y);
+            // if (mahalanobis_dist > outlier_threshold) 
+            // {
+            //     std::cout << "Outlier Detected in SLAM Update " << " Mah: " << mahalanobis_dist << " Outlier threshold: " << outlier_threshold << std::endl;
+            //     return;
+            // }
+
+            // Update the state and covariance
+            x += K * y;
+            std::cout << "AccelGuro Updated State (x): \n" << x << "\n\n";
+
+            P -= K * H_combined * P;
+            // std::cout << "Updated State Covariance (P): \n" << P << "\n\n";
+        }
+
         /**
          * @brief Returns the innovation covariance matrix
          */

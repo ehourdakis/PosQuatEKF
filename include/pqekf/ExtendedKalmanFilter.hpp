@@ -135,7 +135,7 @@ namespace ekf {
             // return updated state estimate
             return getState();
         }
-
+        
         /**
          * @brief Updates the state with only a SLAM measurement.
          * 
@@ -272,6 +272,106 @@ namespace ekf {
 
             P -= K * H_combined * P;
             // std::cout << "Updated State Covariance (P): \n" << P << "\n\n";
+        }
+
+        /**
+         * @brief Updates the state with accelerometer measurement only.
+         * 
+         * This function uses an accelerometer measurement to update the state vector. It performs an 
+         * update step specifically for accelerometer data.
+         *
+         * @param acc_measurement Measurement from the accelerometer as an Eigen::Vector3d.
+         * @param outlier_threshold Threshold for Mahalanobis distance for outlier rejection.
+         * 
+         * @details
+         * Constructs the measurement model matrix (H_acc) for the accelerometer and computes the 
+         * innovation covariance, Kalman gain, and updates the state and covariance matrix. Includes 
+         * outlier detection based on Mahalanobis distance.
+         */
+        void updateWithAccelerometer(const Eigen::Vector3d& acc_measurement, double outlier_threshold) {
+            // Update measurement model and Jacobian for accelerometer
+            Eigen::Matrix<double, 3, 25> H_acc;
+            H_acc.setZero();
+            H_acc.block<3, 3>(0, 6) = Eigen::Matrix3d::Identity(); // Measurement model for acceleration
+
+            // Compute the innovation covariance for accelerometer
+            Eigen::Matrix3d R_acc = Eigen::Matrix3d::Identity() * 1e-4; // noise covariance
+            Eigen::Matrix3d S = H_acc * P * H_acc.transpose() + R_acc;
+
+            // Check if S is invertible
+            if (!is_invertible(S)) 
+            {
+                std::cerr << "Innovation covariance is not invertible for accelerometer update." << std::endl;
+                return;
+            }
+
+            // Compute the Kalman gain
+            Eigen::Matrix<double, 25, 3> K = P * H_acc.transpose() * S.inverse();
+
+            // Compute the innovation
+            Eigen::Vector3d y = acc_measurement - h(x).segment<3>(7); // Innovation
+
+            // Compute Mahalanobis distance for outlier detection
+            double mahalanobis_dist = std::sqrt(y.transpose() * S.inverse() * y);
+            if (mahalanobis_dist > outlier_threshold) 
+            {
+                std::cout << "Outlier Detected in Accelerometer Update\n";
+                return;
+            }
+
+            // Update the state and covariance
+            x += K * y;
+            P -= K * H_acc * P;
+        }
+
+        /**
+         * @brief Updates the state with gyroscope measurement only.
+         * 
+         * This function uses a gyroscope measurement to update the state vector. It performs an 
+         * Extended Kalman Filter update step specifically for gyroscope data.
+         *
+         * @param gyro_measurement Measurement from the gyroscope as an Eigen::Vector3d.
+         * @param outlier_threshold Threshold for Mahalanobis distance for outlier rejection.
+         * 
+         * @details
+         * Constructs the measurement model matrix (H_gyro) for the gyroscope and computes the 
+         * innovation covariance, Kalman gain, and updates the state and covariance matrix. Includes 
+         * outlier detection based on Mahalanobis distance.
+         */
+        void updateWithGyroscope(const Eigen::Vector3d& gyro_measurement, double outlier_threshold) {
+            // Update measurement model and Jacobian for gyroscope
+            Eigen::Matrix<double, 3, 25> H_gyro;
+            H_gyro.setZero();
+            H_gyro.block<3, 3>(0, 13) = Eigen::Matrix3d::Identity(); // Measurement model for angular velocity
+
+            // Compute the innovation covariance for gyroscope
+            Eigen::Matrix3d R_gyro = Eigen::Matrix3d::Identity() * 1e-4; //  noise covariance
+            Eigen::Matrix3d S = H_gyro * P * H_gyro.transpose() + R_gyro;
+
+            // Check if S is invertible
+            if (!is_invertible(S)) 
+            {
+                std::cerr << "Innovation covariance is not invertible for gyroscope update." << std::endl;
+                return;
+            }
+
+            // Compute the Kalman gain
+            Eigen::Matrix<double, 25, 3> K = P * H_gyro.transpose() * S.inverse();
+
+            // Calculate innovation
+            Eigen::Vector3d y = gyro_measurement - h(x).segment<3>(10); // Innovation
+
+            // Calculate Mahalanobis distance for outlier detection
+            double mahalanobis_distance = std::sqrt(y.transpose() * S.inverse() * y);
+            if (outlier_threshold > 0.0 && mahalanobis_distance > outlier_threshold) 
+            {
+                std::cout << "Outlier detected in gyroscope update." << std::endl;
+                return;
+            }
+
+            // Update the state and covariance
+            x += K * y;
+            P -= K * H_gyro * P;
         }
 
         /**

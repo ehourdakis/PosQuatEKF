@@ -206,4 +206,99 @@ namespace poses
         return true;
     }
 
+    /**
+     * @brief Loading workflow for IMU
+     * 
+     */
+    std::vector<Pose> loadPosesFromFile(const std::string& filename) {
+        std::vector<Pose> poses;
+        std::ifstream file(filename);
+
+        if (!file.is_open()) {
+            std::cout << "Error opening file: " << filename << std::endl;
+            return poses;
+        }
+
+        std::string line;
+        while (std::getline(file, line)) {
+            std::istringstream iss(line);
+            int index;
+            double x, y, z, qw, qx, qy, qz;
+            if (!(iss >> index >> x >> y >> z >> qx >> qy >> qz >> qw)) {
+                break; // error
+            }
+
+            Eigen::Vector3d position(x, y, z);
+            Eigen::Quaterniond orientation(qw, qx, qy, qz);
+            poses.emplace_back(position, orientation, 0); // timestamp to be filled later
+        }
+
+        return poses;
+    }
+
+    class DataLoader {
+    public:
+        DataLoader(const std::string& poseFile, const std::string& imageIndexFile, const std::string& imuIndexFile)
+        {
+            poses = loadPosesFromFile(poseFile);
+            auto imageTimestamps = loadImageIndices(imageIndexFile);
+            auto imuFiles = loadIMUDataForPoses(imuIndexFile);
+            
+            synchronizePosesWithImagesAndIMU(imageTimestamps, imuFiles);
+
+            std::cout << "loaded " << poses.size() << std::endl;
+        }
+
+        struct DataIteration {
+            Pose pose;
+            std::vector<IMUData> imuData;
+        };
+
+        std::vector<DataIteration> getDataIterations() const {
+            return dataIterations;
+        }
+
+    private:
+        std::vector<Pose> poses;
+        std::vector<DataIteration> dataIterations;
+
+        std::vector<double> loadImageIndices(const std::string& filename) {
+            std::vector<double> timestamps;
+            std::ifstream file(filename);
+
+            if (!file.is_open()) {
+                std::cout << "Error opening file: " << filename << std::endl;
+                return timestamps;
+            }
+
+            std::string line;
+            while (std::getline(file, line)) {
+                std::istringstream iss(line);
+                double timestamp;
+                std::string imagePath;
+                if (!(iss >> timestamp >> imagePath)) {
+                    break; // error
+                }
+                timestamps.push_back(timestamp);
+            }
+
+            return timestamps;
+        }
+
+        void synchronizePosesWithImagesAndIMU(const std::vector<double>& imageTimestamps, const std::vector<std::string>& imuFiles) {
+            // Assuming every fifth image and IMU file corresponds to a pose
+            for (size_t i = 0; i < poses.size(); ++i) {
+                if (5 * i < imageTimestamps.size()) {
+                    poses[i].timestamp = imageTimestamps[5 * i];
+                }
+
+                if (5 * i < imuFiles.size()) {
+                    std::string imuFile = "data/imu/" + imuFiles[5 * i];
+                    // std::cout << "Loading IMU data from " << imuFile << std::endl;
+                    auto imuData = loadIMUData(imuFile);
+                    dataIterations.push_back({poses[i], imuData});
+                }
+            }
+        }
+    };
 }

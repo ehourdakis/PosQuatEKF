@@ -188,7 +188,8 @@ public:
      * @param orientation The initial system orientation to use for initialization
      */
     void init_state(const Eigen::Vector3d& position = Eigen::Vector3d::Zero(),
-        const Eigen::Quaterniond& orientation = Eigen::Quaterniond::Identity())
+        const Eigen::Quaterniond& orientation = Eigen::Quaterniond::Identity(),
+        const Eigen::Vector3d& gyroscope_bias = Eigen::Vector3d::Zero())
     {
         State x;
         x.setZero();
@@ -201,7 +202,14 @@ public:
         x(11) = orientation.y();
         x(12) = orientation.z();
 
+        x(22)= gyroscope_bias(0);
+        x(23)= gyroscope_bias(1);
+        x(24)= gyroscope_bias(2);
+
         _ekf->setState(x);
+
+        // Initialize the previous orientation with the current orientation
+        _prev_orientation = orientation.normalized();
     }
 
     /**

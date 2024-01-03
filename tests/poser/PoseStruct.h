@@ -12,6 +12,68 @@
 
 namespace poses
 {
+    struct IMUData {
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+        IMUData() = default;
+
+        IMUData(Eigen::Vector3d acceleration_, Eigen::Vector3d gyroscope_, double timestamp_)
+        : acceleration(acceleration_), gyroscope(gyroscope_), timestamp(timestamp_) {}
+
+        void cout() const {
+            std::cout << std::fixed << timestamp << " " << acceleration.transpose() << " " 
+                    << gyroscope.transpose() << std::endl;
+        }
+
+        Eigen::Vector3d acceleration = Eigen::Vector3d(0,0,0);
+        Eigen::Vector3d gyroscope = Eigen::Vector3d(0,0,0);
+        double timestamp;
+    };
+
+    std::vector<IMUData> loadIMUData(const std::string& imuFilename) {
+        std::vector<IMUData> imuData;
+        std::ifstream file(imuFilename);
+
+        if (!file.is_open()) {
+            std::cout << "Error opening file: " << imuFilename << std::endl;
+            return imuData;
+        }
+
+        std::string line;
+        while (std::getline(file, line)) {
+            std::istringstream iss(line);
+            double timestamp, ax, ay, az, gx, gy, gz;
+            if (!(iss >> timestamp >> ax >> ay >> az >> gx >> gy >> gz)) {
+                break; // error
+            }
+
+            Eigen::Vector3d acceleration(ax, ay, az);
+            Eigen::Vector3d gyroscope(gx, gy, gz);
+            imuData.emplace_back(acceleration, gyroscope, timestamp);
+        }
+
+        return imuData;
+    }
+
+    std::vector<std::string> loadIMUDataForPoses(const std::string& imuIndexFile) {
+        std::vector<std::string> imuFiles;
+        std::ifstream imuIndex(imuIndexFile);
+        std::string line;
+
+        // Load all IMU file names
+        while (std::getline(imuIndex, line)) {
+            std::istringstream iss(line);
+            double timestamp;
+            std::string imuFile;
+            if (!(iss >> timestamp >> imuFile)) {
+                break; // error
+            }
+            imuFiles.push_back(imuFile);
+        }
+
+        return imuFiles;
+    }
+
     /**
      * @brief Holds a pose measurement.
      * 

@@ -44,9 +44,31 @@ int kbhit() {
     return nbbytes;
 }
 
+Eigen::Quaterniond correctQuaternionFlip(const Eigen::Quaterniond& current, const Eigen::Quaterniond& previous) 
+{
+    // Calculate the dot product between the current and previous quaternions
+    double dot = current.coeffs().dot(previous.coeffs());
+
+    // If the dot product is negative, the quaternions are in opposite hemispheres of the
+    // quaternion space, so we need to flip the sign of the current quaternion to ensure continuity
+    Eigen::Quaterniond corrected = current;
+    if (dot < 0.0) {
+        corrected.coeffs() = -current.coeffs();
+
+#if 0
+        // Debug output
+        std::cout << "Quaternion correction: Flipping sign to maintain continuity." << std::endl;
+        std::cout << "Previous Quaternion: " << previous.coeffs().transpose() << std::endl;
+        std::cout << "Current Quaternion (before flip): " << current.coeffs().transpose() << std::endl;
+        std::cout << "Corrected Quaternion: " << corrected.coeffs().transpose() << std::endl;
+#endif
+    }
+
+    return corrected;
+}
+
 int main(int argc, char** argv)
 {
-    std::vector<poses::Pose> measurements;
     std::vector<ekf::PoseQuaternionEKF::State > ekf_states; // the stored states of the EKF
 
     bool paused = false; // Pause using spacebar

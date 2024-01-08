@@ -8,7 +8,6 @@
 #include <iomanip> // set precission cout
 
 #include <Eigen/Dense>
-#include <cmath>
 
 namespace poses
 {
@@ -87,14 +86,14 @@ namespace poses
         Pose(Eigen::Vector3d position_, Eigen::Quaterniond orientation_, double dt_)
         : position(position_), orientation(orientation_), timestamp(dt_) {}
 
-        void cout() {
+        void cout() const {
             std::cout << std::fixed << timestamp << " " << position.transpose() << " " 
                 << orientation.w() << " " << orientation.vec().transpose() << std::endl;
         }
     public:
         Eigen::Vector3d position = Eigen::Vector3d(0,0,0);
         Eigen::Quaterniond orientation = Eigen::Quaterniond();
-        long long timestamp;
+        double timestamp;
     };
 
     /**

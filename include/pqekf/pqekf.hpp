@@ -254,7 +254,9 @@ public:
 private:
     double _outlier_threshold;
     bool _reject_outliers;
-    
+
+    Eigen::Quaterniond _prev_orientation = Eigen::Quaterniond::Identity(); // ensure contiouty of quaternion
+
     std::unique_ptr<EKF> _ekf; // the EKF model
 };
 
